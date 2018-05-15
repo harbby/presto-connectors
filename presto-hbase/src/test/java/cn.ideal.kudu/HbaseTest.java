@@ -26,7 +26,8 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class HbaseTest {
+public class HbaseTest
+{
 
     private static final Logger LOG = LoggerFactory.getLogger(HbaseTest.class);
     static String tableName = "n603_c_1";
@@ -34,6 +35,7 @@ public class HbaseTest {
     static Configuration conf = HBaseConfiguration.create();
     /* ** 下面是1.1.2 版本推荐的连接池 ***/
     static Connection hbaseClient;
+
     static {
         try {
             hbaseClient = ConnectionFactory.createConnection(conf);
@@ -43,7 +45,8 @@ public class HbaseTest {
         }
     }
 
-    public static void main(String[] agrs) throws IOException
+    public static void main(String[] agrs)
+            throws IOException
     {
         Table htable = hbaseClient.getTable(TableName.valueOf("students"));
 
@@ -61,7 +64,7 @@ public class HbaseTest {
         // set attrs...
         ResultScanner rs = htable.getScanner(scan);
 
-        for(Result r:rs){
+        for (Result r : rs) {
             // process result...
             System.out.println(new String(r.getRow()));
         }
@@ -76,7 +79,7 @@ public class HbaseTest {
             throws IOException
     {
         Object a1 = Arrays.stream(hbaseClient.getAdmin().listNamespaceDescriptors())
-                .map(x->x.getName()).collect(Collectors.toList());
+                .map(x -> x.getName()).collect(Collectors.toList());
         System.out.println(a1);
     }
 
@@ -86,12 +89,12 @@ public class HbaseTest {
     {
         Object a1 = Arrays.stream(hbaseClient.getAdmin()
                 .listTableNamesByNamespace("default")
-        ).map(x->x.getNameAsString()).collect(Collectors.toList());
+        ).map(x -> x.getNameAsString()).collect(Collectors.toList());
         System.out.println(a1);
 
         HTableDescriptor descriptor = hbaseClient.getAdmin().getTableDescriptor(TableName.valueOf("students"));
         Object a2 = descriptor.getColumnFamilies();
-        Object a3 = descriptor.getFamilies().iterator().next().;
+        Object a3 = descriptor.getFamilies();
         System.out.println(a3);
     }
 
@@ -116,15 +119,15 @@ public class HbaseTest {
     }
 
     @Test
-    public void scan() throws Exception {
+    public void scan()
+            throws Exception
+    {
     }
-
 
     @Test
     public void tableExists()
     {
     }
-
 
     public static InetAddress getInetAddress(String host)
     {
@@ -134,13 +137,15 @@ public class HbaseTest {
             InetAddress ip = InetAddress.getByName(host);
             long latency = System.nanoTime() - start;
             if (latency > 500000L && LOG.isDebugEnabled()) {
-                LOG.debug("Resolved IP of `{}' to {} in {}ns", new Object[]{host, ip, latency});
-            } else if (latency >= 3000000L) {
-                LOG.warn("Slow DNS lookup! Resolved IP of `{}' to {} in {}ns", new Object[]{host, ip, latency});
+                LOG.debug("Resolved IP of `{}' to {} in {}ns", new Object[] {host, ip, latency});
+            }
+            else if (latency >= 3000000L) {
+                LOG.warn("Slow DNS lookup! Resolved IP of `{}' to {} in {}ns", new Object[] {host, ip, latency});
             }
 
             return ip;
-        } catch (UnknownHostException var6) {
+        }
+        catch (UnknownHostException var6) {
             var6.printStackTrace();
             LOG.error("Failed to resolve the IP of `{}' in {}ns", host, System.nanoTime() - start);
             return null;

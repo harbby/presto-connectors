@@ -1,6 +1,5 @@
 package com.facebook.presto.hbase;
 
-import com.facebook.presto.hbase.model.HbaseColumnHandle;
 import com.facebook.presto.hbase.model.HbaseTableHandle;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
@@ -15,9 +14,7 @@ import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.apache.hadoop.hbase.HTableDescriptor;
 
 import javax.inject.Inject;
 

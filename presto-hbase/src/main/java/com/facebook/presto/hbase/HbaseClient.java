@@ -1,7 +1,6 @@
 package com.facebook.presto.hbase;
 
 import com.facebook.presto.hbase.conf.HbaseConfig;
-import com.facebook.presto.hbase.model.HbaseTableHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.PrestoException;

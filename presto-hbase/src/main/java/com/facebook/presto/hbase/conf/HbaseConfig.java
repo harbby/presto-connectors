@@ -2,7 +2,6 @@ package com.facebook.presto.hbase.conf;
 
 import io.airlift.configuration.Config;
 import io.airlift.configuration.ConfigDescription;
-import io.airlift.configuration.DefunctConfig;
 
 public class HbaseConfig
 {
