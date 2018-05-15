@@ -33,6 +33,5 @@ public class HbasePageSink
     @Override
     public void abort()
     {
-
     }
 }

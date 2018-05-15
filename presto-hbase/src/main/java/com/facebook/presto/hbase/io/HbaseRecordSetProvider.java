@@ -45,7 +45,6 @@ public class HbaseRecordSetProvider
         HbaseSplit hbaseSplit = (HbaseSplit) split;
         checkArgument(hbaseSplit.getConnectorId().equals(connectorId), "split is not for this connector");
 
-
         ImmutableList.Builder<HbaseColumnHandle> handles = ImmutableList.builder();
         for (ColumnHandle handle : columns) {
             handles.add((HbaseColumnHandle) handle);

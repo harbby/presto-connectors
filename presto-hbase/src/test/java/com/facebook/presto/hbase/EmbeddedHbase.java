@@ -36,18 +36,16 @@ public class EmbeddedHbase
         log.info("Starting Hbase...");
 
         Configuration conf = HBaseConfiguration.create();
-        Connection client = ConnectionFactory.createConnection(conf);;
+        Connection client = ConnectionFactory.createConnection(conf);
 
         EmbeddedHbase.session = client;
         initialized = true;
     }
 
-    public static synchronized  EmbeddedHbase createEmbeddedHbase(){
+    public static synchronized EmbeddedHbase createEmbeddedHbase()
+    {
         return new EmbeddedHbase();
     }
-
-
-
 
     public static synchronized Connection getSession()
     {

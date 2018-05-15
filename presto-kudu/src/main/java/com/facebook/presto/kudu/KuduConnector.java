@@ -32,7 +32,7 @@ import static java.util.Objects.requireNonNull;
 public class KuduConnector
         implements Connector
 {
-    private static final Logger log = Logger.get(KuduConnector.class);
+    private static final Logger LOG = Logger.get(KuduConnector.class);
 
     private final LifeCycleManager lifeCycleManager;
     private final KuduMetadata metadata;
@@ -93,7 +93,7 @@ public class KuduConnector
             lifeCycleManager.stop();
         }
         catch (Exception e) {
-            log.error(e, "Error shutting down connector");
+            LOG.error(e, "Error shutting down connector");
         }
     }
 }

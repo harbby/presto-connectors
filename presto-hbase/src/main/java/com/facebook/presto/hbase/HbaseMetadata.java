@@ -73,10 +73,9 @@ public class HbaseMetadata
         boolean exists = client.tableExists(tableName);
         if (exists) {
             return new HbaseTableHandle(
-                    connectorId
-                    , tableName.getSchemaName()
-                    , tableName.getTableName()
-            );
+                    connectorId,
+                    tableName.getSchemaName(),
+                    tableName.getTableName());
         }
         return null;
     }
@@ -117,8 +116,8 @@ public class HbaseMetadata
 //            HbaseColumnHandle columnHandle = new HbaseColumnHandle(
 //                    column.getName(),
 //                    column.g,
-//                    ordinalPosition
-//            )
+//                    ordinalPosition)
+//
 //            columnHandles.put(column.getName(), columnHandle);
 //        }
 //        return columnHandles.build();

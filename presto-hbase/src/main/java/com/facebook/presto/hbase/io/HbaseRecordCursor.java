@@ -38,8 +38,7 @@ public class HbaseRecordCursor
             String tableName,
             HbaseSplit hbaseSplit,
             List<String> columnNames,
-            List<Type> columnTypes
-    )
+            List<Type> columnTypes)
     {
         this.hbaseClient = requireNonNull(hbaseClient, "hbaseClient is null");
         this.tableName = requireNonNull(tableName, "tableName is null");
@@ -92,10 +91,11 @@ public class HbaseRecordCursor
     {
         try {
             if (resultScanner != null) {
-
                 this.result = resultScanner.next();
 
-                if (result != null) { return true; }
+                if (result != null) {
+                    return true;
+                }
             }
         }
         catch (IOException e) {
@@ -143,10 +143,14 @@ public class HbaseRecordCursor
     @Override
     public void close()
     {
-        if (resultScanner != null) {resultScanner.close();}
+        if (resultScanner != null) {
+            resultScanner.close();
+        }
 
         try {
-            if (htable != null) { htable.close(); }
+            if (htable != null) {
+                htable.close();
+            }
         }
         catch (IOException e) {
             throw new PrestoException(HBASE_TABLE_CLOSE_ERR, e);

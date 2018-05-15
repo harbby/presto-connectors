@@ -13,7 +13,8 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class HbaseSplit implements ConnectorSplit
+public class HbaseSplit
+        implements ConnectorSplit
 {
     private final String connectorId;
     private final String rowId;

@@ -17,8 +17,10 @@ public class HbasePageSinkProvider
         implements ConnectorPageSinkProvider
 {
     private final Connection hbaseClient;
+
     @Inject
-    public HbasePageSinkProvider(Connection hbaseClient){
+    public HbasePageSinkProvider(Connection hbaseClient)
+    {
         this.hbaseClient = requireNonNull(hbaseClient, "hbaseClient is null");
     }
 

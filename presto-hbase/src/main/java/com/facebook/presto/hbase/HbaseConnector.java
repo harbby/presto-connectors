@@ -38,10 +38,9 @@ public class HbaseConnector
             HbaseMetadata metadata,
             HbaseSplitManager splitManager,
             HbaseRecordSetProvider recordSetProvider,
-            HbasePageSinkProvider pageSinkProvider
+            HbasePageSinkProvider pageSinkProvider)
 //            HbaseSessionProperties sessionProperties,
 //            HbaseTableProperties tableProperties
-    )
     {
         this.lifeCycleManager = requireNonNull(lifeCycleManager, "lifeCycleManager is null");
         this.metadata = requireNonNull(metadata, "metadata is null");

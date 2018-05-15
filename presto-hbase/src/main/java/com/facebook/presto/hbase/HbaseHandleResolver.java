@@ -58,5 +58,4 @@ public class HbaseHandleResolver
     {
         return HbaseTransactionHandle.class;
     }
-
 }

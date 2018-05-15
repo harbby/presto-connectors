@@ -28,12 +28,11 @@ public class HbaseTableHandle
     public HbaseTableHandle(
             @JsonProperty("connectorId") String connectorId,
             @JsonProperty("schema") String schema,
-            @JsonProperty("table") String table
+            @JsonProperty("table") String table)
 //            @JsonProperty("rowId") String rowId,
 //            @JsonProperty("external") boolean external,
 //            @JsonProperty("serializerClassName") String serializerClassName,
 //            @JsonProperty("scanAuthorizations") Optional<String> scanAuthorizations
-    )
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
         this.schema = requireNonNull(schema, "schema is null");

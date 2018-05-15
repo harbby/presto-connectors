@@ -29,9 +29,9 @@
     </repositories>
 
     <modules>
-        <module>presto-accumulo</module>
-        <module>presto-kudu</module>
         <module>presto-hbase</module>
+        <module>presto-kudu</module>
+        <module>presto-accumulo</module>
     </modules>
 
 </project>

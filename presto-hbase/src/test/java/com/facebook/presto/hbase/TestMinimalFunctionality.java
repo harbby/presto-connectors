@@ -108,11 +108,8 @@ public class TestMinimalFunctionality
     {
         MaterializedResult result = queryRunner.execute("show tables from hbase");
 
-        result.getMaterializedRows().stream().forEach(
-                x -> x.getFields().forEach(y -> {
-                    System.out.println(y);
-                })
-        );
+        result.getMaterializedRows().stream().forEach(x ->
+                x.getFields().forEach(y -> System.out.println(y)));
     }
 
     @Test
@@ -120,11 +117,8 @@ public class TestMinimalFunctionality
     {
         MaterializedResult result = queryRunner.execute("SELECT * from students");
 
-        result.getMaterializedRows().stream().forEach(
-                x -> x.getFields().forEach(y -> {
-                    System.out.println(y);
-                })
-        );
+        result.getMaterializedRows().stream().forEach(x ->
+                x.getFields().forEach(y -> System.out.println(y)));
     }
 
     @Test
@@ -132,11 +126,8 @@ public class TestMinimalFunctionality
     {
         MaterializedResult result = queryRunner.execute("drop table " + tableName);
 
-        result.getMaterializedRows().stream().forEach(
-                x -> x.getFields().forEach(y -> {
-                    System.out.println(y);
-                })
-        );
+        result.getMaterializedRows().stream().forEach(x ->
+                x.getFields().forEach(y -> System.out.println(y)));
     }
 
     @Test
@@ -145,11 +136,8 @@ public class TestMinimalFunctionality
         String sql = "insert into iris values(20171118,'hp','pwd',18)";
         MaterializedResult result = queryRunner.execute(sql);
 
-        result.getMaterializedRows().stream().forEach(
-                x -> x.getFields().forEach(y -> {
-                    System.out.println(y);
-                })
-        );
+        result.getMaterializedRows().stream().forEach(x ->
+                x.getFields().forEach(y -> System.out.println(y)));
     }
 
     @Test
@@ -158,11 +146,8 @@ public class TestMinimalFunctionality
         String sql = "delete from iris where name='hp'";
         MaterializedResult result = queryRunner.execute(sql);
 
-        result.getMaterializedRows().stream().forEach(
-                x -> x.getFields().forEach(y -> {
-                    System.out.println(y);
-                })
-        );
+        result.getMaterializedRows().stream().forEach(x ->
+                x.getFields().forEach(y -> System.out.println(y)));
     }
 
     @Test
@@ -188,10 +173,7 @@ public class TestMinimalFunctionality
                 "'";
         MaterializedResult result = queryRunner.execute(sql);
 
-        result.getMaterializedRows().stream().forEach(
-                x -> x.getFields().forEach(y -> {
-                    System.out.println(y);
-                })
-        );
+        result.getMaterializedRows().stream().forEach(x ->
+                x.getFields().forEach(y -> System.out.println(y)));
     }
 }

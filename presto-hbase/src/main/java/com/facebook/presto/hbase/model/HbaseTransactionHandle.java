@@ -10,7 +10,8 @@ import java.util.UUID;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class HbaseTransactionHandle implements ConnectorTransactionHandle
+public class HbaseTransactionHandle
+        implements ConnectorTransactionHandle
 {
     private final UUID uuid;
 

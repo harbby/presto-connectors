@@ -9,6 +9,8 @@ import java.util.Map;
 
 public class KuduTestUtils
 {
+    private KuduTestUtils() {}
+
     public static void installRedisPlugin(EmbeddedHbase embeddedHbase, QueryRunner queryRunner)
     {
         HbasePlugin kuduPlugin = new HbasePlugin();
@@ -16,8 +18,7 @@ public class KuduTestUtils
         queryRunner.installPlugin(kuduPlugin);
 
         Map<String, String> config = ImmutableMap.of(
-              //  "hbase.master", embeddedHbase.getHost() + ":" + embeddedHbase.getPort()
-                );
+                "hbase.master", embeddedHbase.getHost() + ":" + embeddedHbase.getPort());
         queryRunner.createCatalog("hbase", "hbase", config);
     }
 }

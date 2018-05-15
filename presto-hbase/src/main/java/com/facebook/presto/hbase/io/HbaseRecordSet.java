@@ -26,7 +26,7 @@ public class HbaseRecordSet
     private final String tableName;
     private final HbaseSplit hbaseSplit;
     private final Connection hbaseClient;
-    
+
     public HbaseRecordSet(
             Connection hbaseClient,
             ConnectorSession session,
@@ -37,7 +37,6 @@ public class HbaseRecordSet
         this.columns = requireNonNull(columns, "column handles is null");
         this.columnNames = columns.stream().map(hbaseColumn -> hbaseColumn.getColumnName()).collect(Collectors.toList());
         this.hbaseClient = requireNonNull(hbaseClient, "hbaseClient is null");
-
 
         requireNonNull(split, "split is null");
 
@@ -64,6 +63,6 @@ public class HbaseRecordSet
     @Override
     public RecordCursor cursor()
     {
-        return new HbaseRecordCursor(hbaseClient,tableName,hbaseSplit,columnNames,columnTypes);
+        return new HbaseRecordCursor(hbaseClient, tableName, hbaseSplit, columnNames, columnTypes);
     }
 }

@@ -1,5 +1,6 @@
 package cn.ideal.kudu;
 
+import io.airlift.log.Logger;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -12,24 +13,17 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class HbaseTest
 {
-
-    private static final Logger LOG = LoggerFactory.getLogger(HbaseTest.class);
+    private static final Logger LOG = Logger.get(HbaseTest.class);
     static String tableName = "n603_c_1";
 
     static Configuration conf = HBaseConfiguration.create();

@@ -12,7 +12,6 @@ import static org.testng.Assert.assertNotNull;
 
 public class TestHbasePlugin
 {
-
     @Test
     public void testStartup()
     {

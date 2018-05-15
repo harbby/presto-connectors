@@ -30,8 +30,7 @@ public final class HbaseClient
             HbaseConnectorId connectorId,
             HbaseConfig hbaseConfig,
             NodeManager nodeManager,
-            Connection connection
-    )
+            Connection connection)
     {
         this.connection = requireNonNull(connection, "hbaseClient is null");
     }

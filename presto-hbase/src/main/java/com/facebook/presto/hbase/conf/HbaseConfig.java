@@ -19,5 +19,4 @@ public class HbaseConfig
         this.kuduMaster = kuduMaster;
         return this;
     }
-
 }
