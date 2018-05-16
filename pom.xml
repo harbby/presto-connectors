@@ -17,21 +17,11 @@
         <air.check.skip-license>true</air.check.skip-license>
     </properties>
 
-    <repositories>
-        <repository>
-            <id>cdh.repo</id>
-            <name>Cloudera Repositories</name>
-            <url>https://repository.cloudera.com/artifactory/cloudera-repos</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
     <modules>
         <module>presto-hbase</module>
         <module>presto-kudu</module>
         <module>presto-accumulo</module>
+        <!--<module>hbase-apache2</module>-->
     </modules>
 
 </project>

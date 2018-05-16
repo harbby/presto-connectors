@@ -106,7 +106,7 @@ public class TestMinimalFunctionality
     @Test
     public void showTables()
     {
-        MaterializedResult result = queryRunner.execute("show tables from hbase");
+        MaterializedResult result = queryRunner.execute("describe students");
 
         result.getMaterializedRows().stream().forEach(x ->
                 x.getFields().forEach(y -> System.out.println(y)));
