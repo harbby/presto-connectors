@@ -24,16 +24,16 @@ public class HbaseRecordSetProvider
         implements ConnectorRecordSetProvider
 {
     private final String connectorId;
-    private final Connection hbaseClient;
+    private final Connection connection;
     private final HbaseConfig config;
 
     @Inject
     public HbaseRecordSetProvider(
-            Connection hbaseClient,
+            Connection connection,
             HbaseConnectorId connectorId,
             HbaseConfig config)
     {
-        this.hbaseClient = requireNonNull(hbaseClient, "hbaseClient is null");
+        this.connection = requireNonNull(connection, "connection is null");
         this.connectorId = requireNonNull(connectorId, "connectorId is null").toString();
         this.config = requireNonNull(config, "config is null");
     }
@@ -50,6 +50,6 @@ public class HbaseRecordSetProvider
             handles.add((HbaseColumnHandle) handle);
         }
 
-        return new HbaseRecordSet(hbaseClient, session, hbaseSplit, handles.build());
+        return new HbaseRecordSet(connection, session, hbaseSplit, handles.build());
     }
 }

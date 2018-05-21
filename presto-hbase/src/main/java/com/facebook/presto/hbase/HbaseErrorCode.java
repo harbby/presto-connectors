@@ -22,7 +22,9 @@ public enum HbaseErrorCode
     // Thrown when a table that is expected to exist does not exist
     HBASE_TABLE_DNE(4, EXTERNAL),
 
-    HBASE_TABLE_CLOSE_ERR(5, EXTERNAL);
+    HBASE_TABLE_CLOSE_ERR(5, EXTERNAL),
+
+    HBASE_TABLE_EXISTS(6, EXTERNAL);
 
     private final ErrorCode errorCode;
 

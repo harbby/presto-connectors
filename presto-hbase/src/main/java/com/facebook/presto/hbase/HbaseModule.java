@@ -1,8 +1,11 @@
 package com.facebook.presto.hbase;
 
 import com.facebook.presto.hbase.conf.HbaseConfig;
+import com.facebook.presto.hbase.conf.HbaseSessionProperties;
+import com.facebook.presto.hbase.conf.HbaseTableProperties;
 import com.facebook.presto.hbase.io.HbasePageSinkProvider;
 import com.facebook.presto.hbase.io.HbaseRecordSetProvider;
+import com.facebook.presto.hbase.metadata.ZooKeeperMetadataManager;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
@@ -43,6 +46,11 @@ public class HbaseModule
         binder.bind(HbaseSplitManager.class).in(Scopes.SINGLETON);
         binder.bind(HbaseRecordSetProvider.class).in(Scopes.SINGLETON);
         binder.bind(HbasePageSinkProvider.class).in(Scopes.SINGLETON);
+
+        binder.bind(ZooKeeperMetadataManager.class).in(Scopes.SINGLETON);
+        binder.bind(HbaseTableProperties.class).in(Scopes.SINGLETON);
+        binder.bind(HbaseSessionProperties.class).in(Scopes.SINGLETON);
+        binder.bind(HbaseTableManager.class).in(Scopes.SINGLETON);
 
         binder.bind(Connection.class).toProvider(ConnectionProvider.class);
     }

@@ -22,12 +22,12 @@ public class HbaseColumnHandle
     private final Optional<String> qualifier;
     private final Type type;
     private final String comment;
-    private final String columnName;
+    private final String name;
     private final int ordinal;
 
     @JsonCreator
     public HbaseColumnHandle(
-            @JsonProperty("columnName") String columnName,
+            @JsonProperty("name") String name,
             @JsonProperty("family") Optional<String> family,
             @JsonProperty("qualifier") Optional<String> qualifier,
             @JsonProperty("type") Type type,
@@ -35,7 +35,7 @@ public class HbaseColumnHandle
             @JsonProperty("comment") String comment,
             @JsonProperty("indexed") boolean indexed)
     {
-        this.columnName = requireNonNull(columnName, "columnName is null");
+        this.name = requireNonNull(name, "columnName is null");
         this.family = requireNonNull(family, "family is null");
         this.qualifier = requireNonNull(qualifier, "qualifier is null");
         this.type = requireNonNull(type, "type is null");
@@ -47,9 +47,9 @@ public class HbaseColumnHandle
     }
 
     @JsonProperty
-    public String getColumnName()
+    public String getName()
     {
-        return columnName;
+        return name;
     }
 
     @JsonProperty
@@ -65,7 +65,7 @@ public class HbaseColumnHandle
     }
 
     @JsonProperty
-    public Type getColumnType()
+    public Type getType()
     {
         return type;
     }
@@ -85,7 +85,7 @@ public class HbaseColumnHandle
     @JsonIgnore
     public ColumnMetadata getColumnMetadata()
     {
-        return new ColumnMetadata(columnName, type, comment, false);
+        return new ColumnMetadata(name, type, comment, false);
     }
 
     @JsonProperty
@@ -97,7 +97,7 @@ public class HbaseColumnHandle
     @Override
     public int hashCode()
     {
-        return Objects.hash(indexed, columnName, family, qualifier, type, ordinal, comment);
+        return Objects.hash(indexed, name, family, qualifier, type, ordinal, comment);
     }
 
     @Override
@@ -113,7 +113,7 @@ public class HbaseColumnHandle
 
         HbaseColumnHandle other = (HbaseColumnHandle) obj;
         return Objects.equals(this.indexed, other.indexed)
-                && Objects.equals(this.columnName, other.columnName)
+                && Objects.equals(this.name, other.name)
                 && Objects.equals(this.family, other.family)
                 && Objects.equals(this.qualifier, other.qualifier)
                 && Objects.equals(this.type, other.type)
@@ -125,7 +125,7 @@ public class HbaseColumnHandle
     public String toString()
     {
         return toStringHelper(this)
-                .add("name", columnName)
+                .add("name", name)
                 .add("columnFamily", family.orElse(null))
                 .add("columnQualifier", qualifier.orElse(null))
                 .add("type", type)

@@ -72,6 +72,8 @@ public class HbaseTest
     public void showSchemas()
             throws IOException
     {
+        Object a0 = hbaseClient.getAdmin().getNamespaceDescriptor("a1");
+
         Object a1 = Arrays.stream(hbaseClient.getAdmin().listNamespaceDescriptors())
                 .map(x -> x.getName()).collect(Collectors.toList());
         System.out.println(a1);

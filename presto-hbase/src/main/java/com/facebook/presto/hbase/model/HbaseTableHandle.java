@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
@@ -19,29 +20,26 @@ public class HbaseTableHandle
     private final String schema;
     private final String table;
 
-//    private final String rowId;
-//    private final Optional<String> scanAuthorizations;
-//    private final String serializerClassName;
-//    private final boolean external;
+    private final String rowId;
+    private final Optional<String> scanAuthorizations;
+    private final boolean external;
 
     @JsonCreator
     public HbaseTableHandle(
             @JsonProperty("connectorId") String connectorId,
             @JsonProperty("schema") String schema,
-            @JsonProperty("table") String table)
-//            @JsonProperty("rowId") String rowId,
-//            @JsonProperty("external") boolean external,
-//            @JsonProperty("serializerClassName") String serializerClassName,
-//            @JsonProperty("scanAuthorizations") Optional<String> scanAuthorizations
+            @JsonProperty("table") String table,
+            @JsonProperty("rowId") String rowId,
+            @JsonProperty("external") boolean external,
+            @JsonProperty("scanAuthorizations") Optional<String> scanAuthorizations)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
         this.schema = requireNonNull(schema, "schema is null");
         this.table = requireNonNull(table, "table is null");
+        this.external = requireNonNull(external, "external is null");
+        this.rowId = requireNonNull(rowId, "rowId is null");
 
-//        this.serializerClassName = requireNonNull(serializerClassName, "serializerClassName is null");
-//        this.external = requireNonNull(external, "external is null");
-//        this.rowId = requireNonNull(rowId, "rowId is null");
-//        this.scanAuthorizations = scanAuthorizations;
+        this.scanAuthorizations = scanAuthorizations;
     }
 
     @JsonProperty
@@ -50,29 +48,23 @@ public class HbaseTableHandle
         return connectorId;
     }
 
-//    @JsonProperty
-//    public String getRowId()
-//    {
-//        return rowId;
-//    }
-//
-//    @JsonProperty
-//    public Optional<String> getScanAuthorizations()
-//    {
-//        return scanAuthorizations;
-//    }
+    @JsonProperty
+    public String getRowId()
+    {
+        return rowId;
+    }
+
+    @JsonProperty
+    public Optional<String> getScanAuthorizations()
+    {
+        return scanAuthorizations;
+    }
 
     @JsonProperty
     public String getSchema()
     {
         return schema;
     }
-
-//    @JsonProperty
-//    public String getSerializerClassName()
-//    {
-//        return serializerClassName;
-//    }
 
 //    @JsonIgnore
 //    public AccumuloRowSerializer getSerializerInstance()
@@ -91,11 +83,11 @@ public class HbaseTableHandle
         return table;
     }
 
-//    @JsonProperty
-//    public boolean isExternal()
-//    {
-//        return external;
-//    }
+    @JsonProperty
+    public boolean isExternal()
+    {
+        return external;
+    }
 
     public SchemaTableName toSchemaTableName()
     {
@@ -122,11 +114,10 @@ public class HbaseTableHandle
         HbaseTableHandle other = (HbaseTableHandle) obj;
         return Objects.equals(this.connectorId, other.connectorId)
                 && Objects.equals(this.schema, other.schema)
-                && Objects.equals(this.table, other.table);
-//                && Objects.equals(this.rowId, other.rowId)
-//                && Objects.equals(this.external, other.external)
-//                && Objects.equals(this.serializerClassName, other.serializerClassName)
-//                && Objects.equals(this.scanAuthorizations, other.scanAuthorizations);
+                && Objects.equals(this.table, other.table)
+                && Objects.equals(this.rowId, other.rowId)
+                && Objects.equals(this.external, other.external)
+                && Objects.equals(this.scanAuthorizations, other.scanAuthorizations);
     }
 
     @Override
@@ -136,10 +127,9 @@ public class HbaseTableHandle
                 .add("connectorId", connectorId)
                 .add("schema", schema)
                 .add("table", table)
-//                .add("rowId", rowId)
-//                .add("internal", external)
-//                .add("serializerClassName", serializerClassName)
-//                .add("scanAuthorizations", scanAuthorizations)
+                .add("rowId", rowId)
+                .add("internal", external)
+                .add("scanAuthorizations", scanAuthorizations)
                 .toString();
     }
 }

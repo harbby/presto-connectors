@@ -22,7 +22,6 @@ public class HbaseTable
     private final boolean external;
     private final Integer rowIdOrdinal;
     private final String schema;
-    private final String serializerClassName;
     private final Optional<String> scanAuthorizations;
     private final List<ColumnMetadata> columnsMetadata;
     private final boolean indexed;
@@ -36,9 +35,8 @@ public class HbaseTable
             @JsonProperty("schema") String schema,
             @JsonProperty("table") String table,
             @JsonProperty("columns") List<HbaseColumnHandle> columns,
-            @JsonProperty("rowId") String rowId,
-            @JsonProperty("external") boolean external,
-            @JsonProperty("serializerClassName") String serializerClassName,
+            @JsonProperty("rowId") String rowId,           //rowkey字段名
+            @JsonProperty("external") boolean external,   //是否是外部表
             @JsonProperty("scanAuthorizations") Optional<String> scanAuthorizations)
     {
         this.external = requireNonNull(external, "external is null");
@@ -46,7 +44,7 @@ public class HbaseTable
         this.schema = requireNonNull(schema, "schema is null");
         this.table = requireNonNull(table, "table is null");
         this.columns = ImmutableList.copyOf(requireNonNull(columns, "columns are null"));
-        this.serializerClassName = requireNonNull(serializerClassName, "serializerClassName is null");
+
         this.scanAuthorizations = scanAuthorizations;
 
         boolean indexed = false;
@@ -57,7 +55,7 @@ public class HbaseTable
         for (HbaseColumnHandle column : this.columns) {
             columnMetadataBuilder.add(column.getColumnMetadata());
             indexed |= column.isIndexed();
-            if (column.getColumnName().equals(this.rowId)) {
+            if (column.getName().equals(this.rowId)) {
                 rowIdOrdinal = Optional.of(column.getOrdinal());
             }
         }
@@ -122,12 +120,6 @@ public class HbaseTable
         return scanAuthorizations;
     }
 
-    @JsonProperty
-    public String getSerializerClassName()
-    {
-        return serializerClassName;
-    }
-
     @JsonIgnore
     public List<ColumnMetadata> getColumnsMetadata()
     {
@@ -190,7 +182,6 @@ public class HbaseTable
                 .add("columns", columns)
                 .add("rowIdName", rowId)
                 .add("external", external)
-                .add("serializerClassName", serializerClassName)
                 .add("scanAuthorizations", scanAuthorizations)
                 .toString();
     }

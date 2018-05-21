@@ -1,5 +1,6 @@
 package com.facebook.presto.hbase.io;
 
+import com.facebook.presto.hbase.HbaseClient;
 import com.facebook.presto.hbase.model.HbaseTableHandle;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorOutputTableHandle;
@@ -16,20 +17,23 @@ import static java.util.Objects.requireNonNull;
 public class HbasePageSinkProvider
         implements ConnectorPageSinkProvider
 {
-    private final Connection hbaseClient;
+    private final HbaseClient client;
+    private final Connection connection;
 
     @Inject
-    public HbasePageSinkProvider(Connection hbaseClient)
+    public HbasePageSinkProvider(
+            Connection connection,
+            HbaseClient client)
     {
-        this.hbaseClient = requireNonNull(hbaseClient, "hbaseClient is null");
+        this.client = requireNonNull(client, "client is null");
+        this.connection = requireNonNull(connection, "connection is null");
     }
 
     @Override
     public ConnectorPageSink createPageSink(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorOutputTableHandle outputTableHandle)
     {
         HbaseTableHandle tableHandle = (HbaseTableHandle) outputTableHandle;
-        //client.getTable(tableHandle.toSchemaTableName())
-        return new HbasePageSink(hbaseClient, tableHandle);
+        return new HbasePageSink(connection, client.getTable(tableHandle.toSchemaTableName()));
     }
 
     @Override

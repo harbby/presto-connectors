@@ -1,71 +1,73 @@
 package com.facebook.presto.hbase.io;
 
-import com.facebook.presto.hbase.model.HbaseSplit;
+import com.facebook.presto.hbase.Types;
+import com.facebook.presto.hbase.model.HbaseColumnConstraint;
+import com.facebook.presto.hbase.model.HbaseColumnHandle;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.RecordCursor;
+import com.facebook.presto.spi.block.Block;
+import com.facebook.presto.spi.block.BlockBuilder;
+import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeUtils;
+import com.facebook.presto.spi.type.VarbinaryType;
+import com.facebook.presto.spi.type.VarcharType;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.internal.MoreTypes;
 import io.airlift.slice.Slice;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Connection;
+import io.airlift.slice.Slices;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
+import java.lang.reflect.ParameterizedType;
 import java.util.List;
+import java.util.Map;
 
-import static com.facebook.presto.hbase.HbaseErrorCode.HBASE_TABLE_CLOSE_ERR;
-import static com.facebook.presto.hbase.HbaseErrorCode.HBASE_TABLE_DNE;
 import static com.facebook.presto.hbase.HbaseErrorCode.IO_ERROR;
+import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
+import static com.facebook.presto.spi.type.BigintType.BIGINT;
+import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
+import static com.facebook.presto.spi.type.DateType.DATE;
+import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
+import static com.facebook.presto.spi.type.IntegerType.INTEGER;
+import static com.facebook.presto.spi.type.RealType.REAL;
+import static com.facebook.presto.spi.type.SmallintType.SMALLINT;
+import static com.facebook.presto.spi.type.TimeType.TIME;
+import static com.facebook.presto.spi.type.TimestampType.TIMESTAMP;
+import static com.facebook.presto.spi.type.TinyintType.TINYINT;
+import static com.google.common.base.Preconditions.checkArgument;
+import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 public class HbaseRecordCursor
         implements RecordCursor
 {
-    private final Connection hbaseClient;
-    private final String tableName;
-    private final HbaseSplit hbaseSplit;
-    private final List<String> columnNames;
-    private final List<Type> columnTypes;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final Table htable;
+    private final String rowIdName;
+    private final List<HbaseColumnHandle> columnHandles;
+    private final List<HbaseColumnConstraint> constraints;
     private final ResultScanner resultScanner;
     private Result result;
 
+    private long nanoStart;
+    private long nanoEnd;
+
     public HbaseRecordCursor(
-            Connection hbaseClient,
-            String tableName,
-            HbaseSplit hbaseSplit,
-            List<String> columnNames,
-            List<Type> columnTypes)
+            ResultScanner resultScanner,
+            String rowIdName,
+            List<HbaseColumnHandle> columnHandles,
+            List<HbaseColumnConstraint> constraints)
     {
-        this.hbaseClient = requireNonNull(hbaseClient, "hbaseClient is null");
-        this.tableName = requireNonNull(tableName, "tableName is null");
-        this.hbaseSplit = requireNonNull(hbaseSplit, "hbaseSplit is null");
-        this.columnNames = requireNonNull(columnNames, "columnNames is null");
-        this.columnTypes = requireNonNull(columnTypes, "columnTypes is null");
-
-        try {
-            this.htable = hbaseClient.getTable(TableName.valueOf("students"));
-
-            Scan scan = new Scan();
-            scan.setMaxVersions();
-            //指定最多返回的Cell数目。用于防止一行中有过多的数据，导致OutofMemory错误。
-            scan.setBatch(10);
-
-            //scan.setFilter(new PageFilter(2));   //limit 2 只获取一个1 rowkey
-
-            //scan.addFamily(Bytes.toBytes("f1"))   //选择列族    注意选择之间是 或的关系 需要几列 就写几列
-            //scan.addColumn(Bytes.toBytes("account"), Bytes.toBytes("name"));  //选择 列
-            //scan.addFamily(Bytes.toBytes("address"));   //选择列族
-
-            // set attrs...
-            this.resultScanner = htable.getScanner(scan);
-        }
-        catch (IOException e) {
-            throw new PrestoException(HBASE_TABLE_DNE, e);
-        }
+        this.resultScanner = requireNonNull(resultScanner, "resultScanner is null");
+        this.rowIdName = requireNonNull(rowIdName, "rowIdName is null");
+        this.columnHandles = requireNonNull(columnHandles, "columnHandles is null");
+        this.constraints = requireNonNull(constraints, "constraints is null");
     }
 
     @Override
@@ -77,67 +79,187 @@ public class HbaseRecordCursor
     @Override
     public long getReadTimeNanos()
     {
-        return 0;
+        return nanoStart > 0L ? (nanoEnd == 0 ? System.nanoTime() : nanoEnd) - nanoStart : 0L;
     }
 
     @Override
     public Type getType(int field)
     {
-        return null;
+        return columnHandles.get(field).getType();
     }
 
     @Override
     public boolean advanceNextPosition()
     {
-        try {
-            if (resultScanner != null) {
-                this.result = resultScanner.next();
+        if (nanoStart == 0) {
+            nanoStart = System.nanoTime();
+        }
 
-                if (result != null) {
-                    return true;
-                }
+        try {
+            this.result = resultScanner.next();
+            if (result != null) {
+                return true;
+            }
+            else {
+                return false;
             }
         }
         catch (IOException e) {
             throw new PrestoException(IO_ERROR, "Caught IO error from resultScanner on read", e);
         }
-        return false;
     }
 
     @Override
     public boolean getBoolean(int field)
     {
-        return false;
+        checkFieldType(field, BOOLEAN);
+        byte[] bytes = getValue(field);
+        return Bytes.toBoolean(bytes);
     }
 
     @Override
     public long getLong(int field)
     {
-        return 0;
+        checkFieldType(field, BIGINT, DATE, INTEGER, REAL, SMALLINT, TIME, TIMESTAMP, TINYINT);
+        Type type = getType(field);
+        byte[] bytes = getValue(field);
+        if (type.equals(BIGINT)) {
+            return Bytes.toLong(bytes);
+        }
+        else if (type.equals(DATE)) {
+            return Bytes.toLong(bytes);
+        }
+        else if (type.equals(INTEGER)) {
+            return Bytes.toLong(bytes);
+        }
+        else if (type.equals(REAL)) {
+            return Bytes.toLong(bytes);
+        }
+        else if (type.equals(SMALLINT)) {
+            return Bytes.toLong(bytes);
+        }
+        else if (type.equals(TIME)) {
+            return Bytes.toLong(bytes);
+        }
+        else if (type.equals(TIMESTAMP)) {
+            return Bytes.toLong(bytes);
+        }
+        else if (type.equals(TINYINT)) {
+            return Bytes.toLong(bytes);
+        }
+        else {
+            throw new PrestoException(NOT_SUPPORTED, "Unsupported type " + getType(field));
+        }
     }
 
     @Override
     public double getDouble(int field)
     {
-        return 0;
+        checkFieldType(field, DOUBLE);
+        byte[] bytes = getValue(field);
+        return Bytes.toDouble(bytes);
     }
 
     @Override
     public Slice getSlice(int field)
     {
-        return null;
+        byte[] bytes = getValue(field);
+        Type type = getType(field);
+        if (type instanceof VarbinaryType) {
+            return Slices.wrappedBuffer(bytes);
+        }
+        else if (type instanceof VarcharType) {
+            return Slices.utf8Slice(new String(bytes, UTF_8));
+        }
+        else {
+            throw new PrestoException(NOT_SUPPORTED, "Unsupported type " + type);
+        }
+    }
+
+    private byte[] getValue(int field)
+    {
+        HbaseColumnHandle handle = columnHandles.get(field);
+        byte[] bytes = handle.getFamily().isPresent() ?
+                result.getValue(Bytes.toBytes(handle.getFamily().get()), Bytes.toBytes(handle.getQualifier().get()))
+                : result.getRow();
+        return bytes;
     }
 
     @Override
     public Object getObject(int field)
     {
-        return null;
+        Type type = getType(field);
+        checkArgument(Types.isArrayType(type) || Types.isMapType(type), "Expected field %s to be a type of array or map but is %s", field, type);
+        byte[] bytes = getValue(field);
+
+        if (Types.isArrayType(type)) {
+            try {
+                List<?> value = MAPPER.readValue(bytes, List.class);
+                return getBlockFromArray(type, value);
+            }
+            catch (IOException e) {
+                throw new UnsupportedOperationException("Unsupported type " + type, e);
+            }
+        }
+        else {
+            try {
+                Class keyType = getTypeValue(Types.getKeyType(type));
+                Class vType = getTypeValue(Types.getValueType(type));
+                Map<Integer, Integer> a1 = null;
+                Map<?, ?> value = MAPPER.readValue(bytes, new TypeReference<Map<Integer,Integer>>(){});
+                return getBlockFromMap(type, value);
+            }
+            catch (IOException e) {
+                throw new UnsupportedOperationException("Unsupported type " + type, e);
+            }
+        }
+    }
+
+    private static Class<?> getTypeValue(Type type)
+    {
+        return Integer.class;
+//        if (Types.isArrayType(type)) {
+//        }
+//        else if (Types.isMapType(type)) {
+//        }
+//        else if (type.equals(BIGINT)) {
+//
+//        }
+//        else if (type.equals(DATE)) {
+//        }
+//        else if (type.equals(INTEGER)) {
+//        }
+//        else if (type.equals(REAL)) {
+//        }
+//        else if (type.equals(SMALLINT)) {
+//        }
+//        else if (type.equals(TIME)) {
+//        }
+//        else if (type.equals(TIMESTAMP)) {
+//        }
+//        else if (type.equals(TINYINT)) {
+//        }
+//        else if (type.equals(BOOLEAN)) {
+//        }
+//        else if (type.equals(DOUBLE)) {
+//        }
+//        else if (type.equals(VARBINARY)) {
+//        }
+//        else if (type instanceof VarcharType) {
+//        }
+//        else {
+//            throw new UnsupportedOperationException("Unsupported type " + type + " valaueClass " + value.getClass());
+//        }
     }
 
     @Override
     public boolean isNull(int field)
     {
-        return false;
+        HbaseColumnHandle handle = columnHandles.get(field);
+        return handle.getFamily().isPresent()
+                && result.getValue(
+                Bytes.toBytes(handle.getFamily().get()),
+                Bytes.toBytes(handle.getQualifier().get())) == null;
     }
 
     @Override
@@ -146,14 +268,97 @@ public class HbaseRecordCursor
         if (resultScanner != null) {
             resultScanner.close();
         }
+        nanoEnd = System.nanoTime();
+    }
 
-        try {
-            if (htable != null) {
-                htable.close();
+    /**
+     * Checks that the given field is one of the provided types.
+     *
+     * @param field Ordinal of the field
+     * @param expected An array of expected types
+     * @throws IllegalArgumentException If the given field does not match one of the types
+     */
+    private void checkFieldType(int field, Type... expected)
+    {
+        Type actual = getType(field);
+        for (Type type : expected) {
+            if (actual.equals(type)) {
+                return;
             }
         }
-        catch (IOException e) {
-            throw new PrestoException(HBASE_TABLE_CLOSE_ERR, e);
+
+        throw new IllegalArgumentException(format("Expected field %s to be a type of %s but is %s", field, StringUtils.join(expected, ","), actual));
+    }
+
+    /**
+     * Encodes the given map into a Block.
+     *
+     * @param mapType Presto type of the map
+     * @param map Map of key/value pairs to encode
+     * @return Presto Block
+     */
+    static Block getBlockFromMap(Type mapType, Map<?, ?> map)
+    {
+        Type keyType = mapType.getTypeParameters().get(0);
+        Type valueType = mapType.getTypeParameters().get(1);
+
+        BlockBuilder mapBlockBuilder = mapType.createBlockBuilder(new BlockBuilderStatus(), 1);
+        BlockBuilder builder = mapBlockBuilder.beginBlockEntry();
+
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            writeObject(builder, keyType, entry.getKey());
+            writeObject(builder, valueType, entry.getValue());
+        }
+
+        mapBlockBuilder.closeEntry();
+        return (Block) mapType.getObject(mapBlockBuilder, 0);
+    }
+
+    /**
+     * Encodes the given list into a Block.
+     *
+     * @param elementType Element type of the array
+     * @param array Array of elements to encode
+     * @return Presto Block
+     */
+    static Block getBlockFromArray(Type elementType, List<?> array)
+    {
+        BlockBuilder builder = elementType.createBlockBuilder(new BlockBuilderStatus(), array.size());
+        for (Object item : array) {
+            writeObject(builder, elementType, item);
+        }
+        return builder.build();
+    }
+
+    /**
+     * Recursive helper function used by {@link HbasePageSink#getArrayFromBlock} and
+     * {@link HbasePageSink#getMapFromBlock} to add the given object to the given block
+     * builder. Supports nested complex types!
+     *
+     * @param builder Block builder
+     * @param type Presto type
+     * @param obj Object to write to the block builder
+     */
+    static void writeObject(BlockBuilder builder, Type type, Object obj)
+    {
+        if (Types.isArrayType(type)) {
+            BlockBuilder arrayBldr = builder.beginBlockEntry();
+            Type elementType = Types.getElementType(type);
+            for (Object item : (List<?>) obj) {
+                writeObject(arrayBldr, elementType, item);
+            }
+            builder.closeEntry();
+        }
+        else if (Types.isMapType(type)) {
+            BlockBuilder mapBlockBuilder = builder.beginBlockEntry();
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) obj).entrySet()) {
+                writeObject(mapBlockBuilder, Types.getKeyType(type), entry.getKey());
+                writeObject(mapBlockBuilder, Types.getValueType(type), entry.getValue());
+            }
+            builder.closeEntry();
+        }
+        else {
+            TypeUtils.writeNativeValue(type, builder, obj);
         }
     }
 }

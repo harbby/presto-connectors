@@ -106,7 +106,7 @@ public class TestMinimalFunctionality
     @Test
     public void showTables()
     {
-        MaterializedResult result = queryRunner.execute("describe students");
+        MaterializedResult result = queryRunner.execute("show tables");
 
         result.getMaterializedRows().stream().forEach(x ->
                 x.getFields().forEach(y -> System.out.println(y)));
@@ -115,7 +115,7 @@ public class TestMinimalFunctionality
     @Test
     public void testSelect()
     {
-        MaterializedResult result = queryRunner.execute("SELECT * from students");
+        MaterializedResult result = queryRunner.execute("SELECT * from a3");
 
         result.getMaterializedRows().stream().forEach(x ->
                 x.getFields().forEach(y -> System.out.println(y)));
@@ -133,7 +133,9 @@ public class TestMinimalFunctionality
     @Test
     public void testInsert()
     {
-        String sql = "insert into iris values(20171118,'hp','pwd',18)";
+        String sql = "INSERT INTO a1 VALUES\n" +
+                "('row3', 'Grace Hopper', 109, DATE '2017-12-09' ),\n" +
+                "('row4', 'Alan Turing', 103, DATE '2017-06-23' )";
         MaterializedResult result = queryRunner.execute(sql);
 
         result.getMaterializedRows().stream().forEach(x ->
@@ -153,25 +155,37 @@ public class TestMinimalFunctionality
     @Test
     public void testCreateTable()
     {
-        String sql = "create table iris2 (\n" +
-                "day integer COMMENT 'primary key and partition',\n" +
-                "name  varchar COMMENT 'primary key',\n" +
-                "pwd\t varchar,\n" +
-                "age  integer\n" +
+        String sql = "CREATE TABLE a1 (\n" +
+                "  rowkey VARCHAR,\n" +
+                "  name VARCHAR,\n" +
+                "  age BIGINT,\n" +
+                "  birthday DATE\n" +
                 ")\n" +
-                "COMMENT '\n" +
-                "PARTITION BY \n" +
-                "HASH PARTITIONS 16,\n" +
-                "HASH(name) PARTITIONS 4,\n" +
-                "RANGE (day,hour) (\n" +
-                "  PARTITION VALUE = (20171120,'1500'),\n" +
-                "  PARTITION VALUE = 20171121,\n" +
-                "  PARTITION VALUE = 20171122,\n" +
-                "  PARTITION VALUE = 20171123,\n" +
-                "  PARTITION VALUE = 20171124\n" +
-                ")\n" +
-                "'";
+                "WITH (\n" +
+                "  external = true,\n" +
+                "  column_mapping = 'name:info:name,age:info:age,birthday:info:date'\n" +
+                ")";
+
         MaterializedResult result = queryRunner.execute(sql);
+
+        result.getMaterializedRows().stream().forEach(x ->
+                x.getFields().forEach(y -> System.out.println(y)));
+    }
+
+    public void testCreateTable2()
+    {
+        String sql = "create table a3 as select 1 as age";
+
+        MaterializedResult result = queryRunner.execute(sql);
+
+        result.getMaterializedRows().stream().forEach(x ->
+                x.getFields().forEach(y -> System.out.println(y)));
+    }
+
+    @Test
+    public void descTable()
+    {
+        MaterializedResult result = queryRunner.execute("drop table a1");
 
         result.getMaterializedRows().stream().forEach(x ->
                 x.getFields().forEach(y -> System.out.println(y)));

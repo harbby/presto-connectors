@@ -17,8 +17,9 @@ public class KuduTestUtils
         //kuduPlugin.setTableDescriptionSupplier(() -> tableDescriptions);
         queryRunner.installPlugin(kuduPlugin);
 
-        Map<String, String> config = ImmutableMap.of();
-                //"hbase.master", embeddedHbase.getHost() + ":" + embeddedHbase.getPort());
+        Map<String, String> config = ImmutableMap.of(
+                "hbase.zookeepers", "localhost:2181");
+        //"hbase.master", embeddedHbase.getHost() + ":" + embeddedHbase.getPort());
         queryRunner.createCatalog("hbase", "hbase", config);
     }
 }

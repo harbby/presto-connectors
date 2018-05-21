@@ -9,7 +9,7 @@ public class HbaseConfig
 {
     private String hbaseMaster;
     private String zooKeepers;
-    private String zkMetadataRoot = "/presto-accumulo";
+    private String zkMetadataRoot = "/presto-hbase";
 
     public String getHbaseMaster()
     {
@@ -18,7 +18,7 @@ public class HbaseConfig
 
     @Config("hbase.hosts")
     @ConfigDescription("IP:PORT where hbase master connect")
-    public HbaseConfig setKuduMaster(String hbaseMaster)
+    public HbaseConfig setHbaseMaster(String hbaseMaster)
     {
         this.hbaseMaster = hbaseMaster;
         return this;

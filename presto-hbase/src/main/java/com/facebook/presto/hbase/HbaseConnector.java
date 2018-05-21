@@ -1,5 +1,7 @@
 package com.facebook.presto.hbase;
 
+import com.facebook.presto.hbase.conf.HbaseSessionProperties;
+import com.facebook.presto.hbase.conf.HbaseTableProperties;
 import com.facebook.presto.hbase.io.HbasePageSinkProvider;
 import com.facebook.presto.hbase.io.HbaseRecordSetProvider;
 import com.facebook.presto.hbase.model.HbaseTransactionHandle;
@@ -9,11 +11,14 @@ import com.facebook.presto.spi.connector.ConnectorPageSinkProvider;
 import com.facebook.presto.spi.connector.ConnectorRecordSetProvider;
 import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
+import com.facebook.presto.spi.session.PropertyMetadata;
 import com.facebook.presto.spi.transaction.IsolationLevel;
 import io.airlift.bootstrap.LifeCycleManager;
 import io.airlift.log.Logger;
 
 import javax.inject.Inject;
+
+import java.util.List;
 
 import static com.facebook.presto.spi.transaction.IsolationLevel.READ_UNCOMMITTED;
 import static com.facebook.presto.spi.transaction.IsolationLevel.checkConnectorSupports;
@@ -29,8 +34,8 @@ public class HbaseConnector
     private final HbaseSplitManager splitManager;
     private final HbaseRecordSetProvider recordSetProvider;
     private final HbasePageSinkProvider pageSinkProvider;
-//    private final HbaseSessionProperties sessionProperties;
-//    private final HbaseTableProperties tableProperties;
+    private final HbaseSessionProperties sessionProperties;
+    private final HbaseTableProperties tableProperties;
 
     @Inject
     public HbaseConnector(
@@ -38,17 +43,17 @@ public class HbaseConnector
             HbaseMetadata metadata,
             HbaseSplitManager splitManager,
             HbaseRecordSetProvider recordSetProvider,
-            HbasePageSinkProvider pageSinkProvider)
-//            HbaseSessionProperties sessionProperties,
-//            HbaseTableProperties tableProperties
+            HbasePageSinkProvider pageSinkProvider,
+            HbaseSessionProperties sessionProperties,
+            HbaseTableProperties tableProperties)
     {
         this.lifeCycleManager = requireNonNull(lifeCycleManager, "lifeCycleManager is null");
         this.metadata = requireNonNull(metadata, "metadata is null");
         this.splitManager = requireNonNull(splitManager, "splitManager is null");
         this.recordSetProvider = requireNonNull(recordSetProvider, "recordSetProvider is null");
         this.pageSinkProvider = requireNonNull(pageSinkProvider, "pageSinkProvider is null");
-//        this.sessionProperties = requireNonNull(sessionProperties, "sessionProperties is null");
-//        this.tableProperties = requireNonNull(tableProperties, "tableProperties is null");
+        this.sessionProperties = requireNonNull(sessionProperties, "sessionProperties is null");
+        this.tableProperties = requireNonNull(tableProperties, "tableProperties is null");
     }
 
     @Override
@@ -82,17 +87,17 @@ public class HbaseConnector
         return pageSinkProvider;
     }
 
-//    @Override
-//    public List<PropertyMetadata<?>> getTableProperties()
-//    {
-//        return tableProperties.getTableProperties();
-//    }
-//
-//    @Override
-//    public List<PropertyMetadata<?>> getSessionProperties()
-//    {
-//        return sessionProperties.getSessionProperties();
-//    }
+    @Override
+    public List<PropertyMetadata<?>> getTableProperties()
+    {
+        return tableProperties.getTableProperties();
+    }
+
+    @Override
+    public List<PropertyMetadata<?>> getSessionProperties()
+    {
+        return sessionProperties.getSessionProperties();
+    }
 
     @Override
     public final void shutdown()
