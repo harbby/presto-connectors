@@ -107,20 +107,20 @@ public class HbasePageSink
             Put put = new Put(toHbaseBytes(rowkeyType, rowKey));
 
             // For each channel within the page, i.e. column
-            for (HbaseColumnHandle columnHandle : columns) {
+            for (HbaseColumnHandle column : columns) {
                 // Skip the row ID ordinal
-                if (columnHandle.getOrdinal() == rowIdOrdinal) {
+                if (column.getOrdinal() == rowIdOrdinal) {
                     continue;
                 }
                 // Get the type for this channel
-                int channel = columnHandle.getOrdinal();
+                int channel = column.getOrdinal();
 
                 // Read the value from the page and append the field to the row
-                Object value = TypeUtils.readNativeValue(columnHandle.getType(), page.getBlock(channel), position);
+                Object value = TypeUtils.readNativeValue(column.getType(), page.getBlock(channel), position);
                 put.addColumn(
-                        Bytes.toBytes(columnHandle.getFamily().get()),
-                        Bytes.toBytes(columnHandle.getQualifier().get()),
-                        toHbaseBytes(columnHandle.getType(), value));
+                        Bytes.toBytes(column.getFamily().get()),
+                        Bytes.toBytes(column.getQualifier().get()),
+                        toHbaseBytes(column.getType(), value));
             }
 
             // Convert row to a Mutation, writing and indexing it
