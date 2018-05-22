@@ -1,8 +1,8 @@
 # Presto-runners [![Build Status](http://img.shields.io/travis/ideal-hp/presto-runners.svg?style=flat&branch=master)](https://travis-ci.org/ideal-hp/presto-runners)
-The Presto-runners is a distributed job scheduling platform
+The Presto-runners
 
-## Building Sheep
-Presto-runners builds use Gradle and requires Java 8 or higher.
+## Building
+Presto-runners builds use Maven and requires Java 8 or higher.
 
 ```
 # Build Sheep and install distributions
