@@ -5,29 +5,22 @@ import com.facebook.presto.hbase.model.HbaseColumnConstraint;
 import com.facebook.presto.hbase.model.HbaseColumnHandle;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.RecordCursor;
-import com.facebook.presto.spi.block.Block;
-import com.facebook.presto.spi.block.BlockBuilder;
-import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.type.Type;
-import com.facebook.presto.spi.type.TypeUtils;
 import com.facebook.presto.spi.type.VarbinaryType;
 import com.facebook.presto.spi.type.VarcharType;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.util.Bytes;
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 import java.io.IOException;
-import java.lang.reflect.ParameterizedType;
 import java.util.List;
-import java.util.Map;
 
 import static com.facebook.presto.hbase.HbaseErrorCode.IO_ERROR;
+import static com.facebook.presto.hbase.serializers.HbaseRowSerializerUtil.getBlockFromArray;
+import static com.facebook.presto.hbase.serializers.HbaseRowSerializerUtil.getBlockFromMap;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
@@ -47,8 +40,6 @@ import static java.util.Objects.requireNonNull;
 public class HbaseRecordCursor
         implements RecordCursor
 {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     private final String rowIdName;
     private final List<HbaseColumnHandle> columnHandles;
     private final List<HbaseColumnConstraint> constraints;
@@ -194,8 +185,7 @@ public class HbaseRecordCursor
 
         if (Types.isArrayType(type)) {
             try {
-                List<?> value = MAPPER.readValue(bytes, List.class);
-                return getBlockFromArray(type, value);
+                return getBlockFromArray(type, bytes);
             }
             catch (IOException e) {
                 throw new UnsupportedOperationException("Unsupported type " + type, e);
@@ -203,31 +193,11 @@ public class HbaseRecordCursor
         }
         else {
             try {
-                Class keyType = Types.getKeyType(type).getJavaType();
-                Class vType = Types.getValueType(type).getJavaType();
-                Map<?, ?> value = MAPPER.readValue(bytes, new MyTypeReference(keyType, vType));
-                return getBlockFromMap(type, value);
+                return getBlockFromMap(type, bytes);
             }
             catch (IOException e) {
                 throw new UnsupportedOperationException("Unsupported type " + type, e);
             }
-        }
-    }
-
-    public static class MyTypeReference
-            extends TypeReference<Map<?, ?>>
-    {
-        private ParameterizedType type;
-
-        public MyTypeReference(Class<?> keyType, Class<?> valueType)
-        {
-            this.type = ParameterizedTypeImpl.make(Map.class, new java.lang.reflect.Type[] {keyType, valueType}, null);
-        }
-
-        @Override
-        public java.lang.reflect.Type getType()
-        {
-            return this.type;
         }
     }
 
@@ -267,77 +237,5 @@ public class HbaseRecordCursor
         }
 
         throw new IllegalArgumentException(format("Expected field %s to be a type of %s but is %s", field, StringUtils.join(expected, ","), actual));
-    }
-
-    /**
-     * Encodes the given map into a Block.
-     *
-     * @param mapType Presto type of the map
-     * @param map Map of key/value pairs to encode
-     * @return Presto Block
-     */
-    static Block getBlockFromMap(Type mapType, Map<?, ?> map)
-    {
-        Type keyType = mapType.getTypeParameters().get(0);
-        Type valueType = mapType.getTypeParameters().get(1);
-
-        BlockBuilder mapBlockBuilder = mapType.createBlockBuilder(new BlockBuilderStatus(), 1);
-        BlockBuilder builder = mapBlockBuilder.beginBlockEntry();
-
-        for (Map.Entry<?, ?> entry : map.entrySet()) {
-            writeObject(builder, keyType, entry.getKey());
-            writeObject(builder, valueType, entry.getValue());
-        }
-
-        mapBlockBuilder.closeEntry();
-        return (Block) mapType.getObject(mapBlockBuilder, 0);
-    }
-
-    /**
-     * Encodes the given list into a Block.
-     *
-     * @param elementType Element type of the array
-     * @param array Array of elements to encode
-     * @return Presto Block
-     */
-    static Block getBlockFromArray(Type elementType, List<?> array)
-    {
-        BlockBuilder builder = elementType.createBlockBuilder(new BlockBuilderStatus(), array.size());
-        for (Object item : array) {
-            writeObject(builder, elementType, item);
-        }
-        return builder.build();
-    }
-
-    /**
-     * Recursive helper function used by {@link HbasePageSink#getArrayFromBlock} and
-     * {@link HbasePageSink#getMapFromBlock} to add the given object to the given block
-     * builder. Supports nested complex types!
-     *
-     * @param builder Block builder
-     * @param type Presto type
-     * @param obj Object to write to the block builder
-     */
-    static void writeObject(BlockBuilder builder, Type type, Object obj)
-    {
-        if (Types.isArrayType(type)) {
-            BlockBuilder arrayBldr = builder.beginBlockEntry();
-            Type elementType = Types.getElementType(type);
-            for (Object item : (List<?>) obj) {
-                writeObject(arrayBldr, elementType, item);
-            }
-            builder.closeEntry();
-        }
-        else if (Types.isMapType(type)) {
-            BlockBuilder mapBlockBuilder = builder.beginBlockEntry();
-            for (Map.Entry<?, ?> entry : ((Map<?, ?>) obj).entrySet()) {
-                writeObject(mapBlockBuilder, Types.getKeyType(type), entry.getKey());
-                writeObject(mapBlockBuilder, Types.getValueType(type), entry.getValue());
-            }
-            builder.closeEntry();
-        }
-        else {
-            TypeUtils.writeNativeValue(type, builder, obj);
-        }
     }
 }
