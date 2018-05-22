@@ -5,7 +5,8 @@ env:
     - MAVEN_OPTS="-Xmx512M -XX:+ExitOnOutOfMemoryError"
     - MAVEN_SKIP_CHECKS_AND_DOCS="-Dair.check.skip-all=true -Dmaven.javadoc.skip=true"
 
-sudo: false
+sudo: required
+dist: trusty
 
 cache:
   directories:
