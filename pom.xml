@@ -21,7 +21,7 @@
         <module>presto-hbase</module>
         <module>presto-kudu</module>
         <module>presto-accumulo</module>
-        <!--<module>hbase-apache2</module>-->
+        <module>hbase-apache2</module>
     </modules>
 
 </project>
