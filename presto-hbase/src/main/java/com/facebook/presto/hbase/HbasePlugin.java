@@ -14,7 +14,6 @@ public class HbasePlugin
     public Set<Class<?>> getFunctions()
     {
         return ImmutableSet.of();
-        //return ImmutableSet.<Class<?>>builder().add(AccumuloStringFunctions.class).build();
     }
 
     @Override

@@ -11,7 +11,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 /**
- * This class encapsulates metadata regarding an Accumulo view in Presto.
+ * This class encapsulates metadata regarding an Hbase view in Presto.
  */
 public class HbaseView
 {

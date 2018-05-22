@@ -15,7 +15,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 /**
- * This class encapsulates metadata regarding an Accumulo table in Presto.
+ * This class encapsulates metadata regarding an Hbase table in Presto.
  */
 public class HbaseTable
 {
@@ -143,17 +143,6 @@ public class HbaseTable
     {
         return this.rowIdOrdinal;
     }
-
-//    @JsonIgnore
-//    public AccumuloRowSerializer getSerializerInstance()
-//    {
-//        try {
-//            return (AccumuloRowSerializer) Class.forName(serializerClassName).getConstructor().newInstance();
-//        }
-//        catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-//            throw new PrestoException(NOT_FOUND, "Configured serializer class not found", e);
-//        }
-//    }
 
     @JsonIgnore
     public static String getFullTableName(String schema, String table)

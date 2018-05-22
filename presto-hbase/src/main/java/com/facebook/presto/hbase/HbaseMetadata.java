@@ -66,7 +66,7 @@ public class HbaseMetadata
         HbaseTableHandle handle = (HbaseTableHandle) tableHandle;
         setRollback(() -> {
             //--------插入操作无法回退
-            // Rollbacks for inserts are off the table when it comes to data in Accumulo.
+            // Rollbacks for inserts are off the table when it comes to data in Hbase.
             // When a batch of Mutations fails to be inserted, the general strategy
             // is to run the insert operation again until it is successful
             // Any mutations that were successfully written will be overwritten

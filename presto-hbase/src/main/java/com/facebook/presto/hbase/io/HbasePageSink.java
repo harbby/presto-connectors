@@ -87,7 +87,7 @@ public class HbasePageSink
             this.htable = connection.getTable(TableName.valueOf(table.getSchema(), table.getTable()));
         }
         catch (TableNotFoundException e) {
-            throw new PrestoException(HBASE_TABLE_DNE, "Accumulo error when getting htable and/or Indexer, table does not exist", e);
+            throw new PrestoException(HBASE_TABLE_DNE, "Hbase error when getting htable and/or Indexer, table does not exist", e);
         }
         catch (IOException e) {
             throw new PrestoException(UNEXPECTED_HBASE_ERROR, "Hbase error when getting htable and/or Indexer", e);

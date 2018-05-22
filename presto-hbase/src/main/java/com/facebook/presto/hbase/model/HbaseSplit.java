@@ -21,7 +21,7 @@ public class HbaseSplit
     private final String rowId;
     private final String schema;
     private final String table;
-    //private final String serializerClassName;
+
     private final Optional<String> scanAuthorizations;
     private final Optional<String> hostPort;
     private final List<HostAddress> addresses;
@@ -50,7 +50,7 @@ public class HbaseSplit
         this.hostPort = requireNonNull(hostPort, "hostPort is null");
         this.ranges = ImmutableList.copyOf(requireNonNull(ranges, "ranges is null"));
 
-        // Parse the host address into a list of addresses, this would be an Accumulo Tablet server or some localhost thing
+        // Parse the host address into a list of addresses, this would be an Hbase Tablet server or some localhost thing
         if (hostPort.isPresent()) {
             addresses = ImmutableList.of(HostAddress.fromString(hostPort.get()));
         }
@@ -118,18 +118,6 @@ public class HbaseSplit
     {
         return constraints;
     }
-
-//    @SuppressWarnings("unchecked")
-//    @JsonIgnore
-//    public Class<? extends AccumuloRowSerializer> getSerializerClass()
-//    {
-//        try {
-//            return (Class<? extends AccumuloRowSerializer>) Class.forName(serializerClassName);
-//        }
-//        catch (ClassNotFoundException e) {
-//            throw new PrestoException(NOT_FOUND, "Configured serializer class not found", e);
-//        }
-//    }
 
     @JsonProperty
     public Optional<String> getScanAuthorizations()

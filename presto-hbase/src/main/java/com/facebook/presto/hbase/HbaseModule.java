@@ -80,20 +80,13 @@ public class HbaseModule
             implements Provider<Connection>
     {
         private static final Logger LOG = Logger.get(ConnectionProvider.class);
-
-//        private final String instance;
-//        private final String zooKeepers;
-//        private final String username;
-//        private final String password;
+        private final String zooKeepers;
 
         @Inject
         public ConnectionProvider(HbaseConfig config)
         {
             requireNonNull(config, "config is null");
-//            this.instance = config.getInstance();
-//            this.zooKeepers = config.getZooKeepers();
-//            this.username = config.getUsername();
-//            this.password = config.getPassword();
+            this.zooKeepers = config.getZooKeepers();
         }
 
         @Override
@@ -101,11 +94,10 @@ public class HbaseModule
         {
             try {
                 Configuration conf = HBaseConfiguration.create();
+                conf.set("hbase.zookeeper.quorum", zooKeepers);
+
                 Connection connection = ConnectionFactory.createConnection(conf);
-//                Instance inst = new ZooKeeperInstance(instance, zooKeepers);
-//                Connector connector = inst.getConnector(username, new PasswordToken(password.getBytes(UTF_8)));
                 LOG.info("Connection to instance %s at %s established, user %s");
-                //LOG.info("Connection to instance %s at %s established, user %s", instance, zooKeepers, username);
                 return connection;
             }
             catch (IOException e) {

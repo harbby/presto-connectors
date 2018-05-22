@@ -67,7 +67,6 @@ public class HbaseSplitManager
                     schemaName,
                     tableName,
                     rowIdName,
-//                    tableHandle.getSerializerClassName(),
                     splitMetadata.getRanges(),
                     constraints,
                     tableHandle.getScanAuthorizations(),
@@ -95,7 +94,7 @@ public class HbaseSplitManager
     /**
      * Gets a list of {@link HbaseColumnConstraint} based on the given constraint ID, excluding the row ID column
      *
-     * @param rowIdName Presto column name mapping to the Accumulo row ID
+     * @param rowIdName Presto column name mapping to the Hbase row ID
      * @param constraint Set of query constraints
      * @return List of all column constraints
      */

@@ -16,7 +16,7 @@ import static com.facebook.presto.spi.session.PropertyMetadata.stringSessionProp
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 
 /**
- * Class contains all session-based properties for the Accumulo connector.
+ * Class contains all session-based properties for the Hbase connector.
  * Use SHOW SESSION to view all available properties in the Presto CLI.
  * <p>
  * Can set the property using:
@@ -63,7 +63,7 @@ public final class HbaseSessionProperties
 
         PropertyMetadata<Integer> s5 = integerSessionProperty(
                 INDEX_ROWS_PER_SPLIT,
-                "The number of Accumulo row IDs that are packed into a single Presto split. Default 10000",
+                "The number of Hbase row IDs that are packed into a single Presto split. Default 10000",
                 10000,
                 false);
 

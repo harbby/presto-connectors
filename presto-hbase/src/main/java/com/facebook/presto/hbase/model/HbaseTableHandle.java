@@ -66,17 +66,6 @@ public class HbaseTableHandle
         return schema;
     }
 
-//    @JsonIgnore
-//    public AccumuloRowSerializer getSerializerInstance()
-//    {
-//        try {
-//            return (AccumuloRowSerializer) Class.forName(serializerClassName).getConstructor().newInstance();
-//        }
-//        catch (Exception e) {
-//            throw new PrestoException(NOT_FOUND, "Configured serializer class not found", e);
-//        }
-//    }
-
     @JsonProperty
     public String getTable()
     {

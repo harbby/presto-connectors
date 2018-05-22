@@ -16,7 +16,7 @@ public enum HbaseErrorCode
     // Thrown when a ZooKeeper error is caught due to a failed operation
     ZOOKEEPER_ERROR(2, EXTERNAL),
 
-    // Thrown when a serialization error occurs when reading/writing data from/to Accumulo
+    // Thrown when a serialization error occurs when reading/writing data from/to Hbase
     IO_ERROR(3, EXTERNAL),
 
     // Thrown when a table that is expected to exist does not exist

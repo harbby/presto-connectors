@@ -43,7 +43,7 @@ public class HbaseRecordSet
 
         rowIdName = split.getRowId();
 
-        // Save off the column handles and createa list of the Accumulo types
+        // Save off the column handles and createa list of the Hbase types
         this.columnHandles = requireNonNull(columnHandles, "column handles is null");
         ImmutableList.Builder<Type> types = ImmutableList.builder();
         for (HbaseColumnHandle column : columnHandles) {
@@ -59,12 +59,15 @@ public class HbaseRecordSet
             scan.setBatch(10);
 
             columnHandles.forEach(column -> {
-                column.getFamily().ifPresent(x->scan.addColumn(Bytes.toBytes(x), Bytes.toBytes(column.getQualifier().get())));
+                column.getFamily().ifPresent(x -> scan.addColumn(Bytes.toBytes(x), Bytes.toBytes(column.getQualifier().get())));
             });
 
             //scan.setFilter(new PageFilter(2));   //limit 2 只获取一个1 rowkey
             //scan.addFamily(Bytes.toBytes("f1"))   //选择列族    注意选择之间是 或的关系 需要几列 就写几列
             //scan.addColumn(Bytes.toBytes("account"), Bytes.toBytes("name"));  //选择 列
+//            FilterList filterList = new FilterList();
+//            filterList.
+//            scan.setFilter(filterList);
 
             //--set range --
 //            scan.setStartRow();
