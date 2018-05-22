@@ -14,13 +14,13 @@ import com.facebook.presto.spi.type.VarbinaryType;
 import com.facebook.presto.spi.type.VarcharType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.internal.MoreTypes;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.util.Bytes;
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
@@ -203,10 +203,9 @@ public class HbaseRecordCursor
         }
         else {
             try {
-                Class keyType = getTypeValue(Types.getKeyType(type));
-                Class vType = getTypeValue(Types.getValueType(type));
-                Map<Integer, Integer> a1 = null;
-                Map<?, ?> value = MAPPER.readValue(bytes, new TypeReference<Map<Integer,Integer>>(){});
+                Class keyType = Types.getKeyType(type).getJavaType();
+                Class vType = Types.getValueType(type).getJavaType();
+                Map<?, ?> value = MAPPER.readValue(bytes, new MyTypeReference(keyType, vType));
                 return getBlockFromMap(type, value);
             }
             catch (IOException e) {
@@ -215,41 +214,21 @@ public class HbaseRecordCursor
         }
     }
 
-    private static Class<?> getTypeValue(Type type)
+    public static class MyTypeReference
+            extends TypeReference<Map<?, ?>>
     {
-        return Integer.class;
-//        if (Types.isArrayType(type)) {
-//        }
-//        else if (Types.isMapType(type)) {
-//        }
-//        else if (type.equals(BIGINT)) {
-//
-//        }
-//        else if (type.equals(DATE)) {
-//        }
-//        else if (type.equals(INTEGER)) {
-//        }
-//        else if (type.equals(REAL)) {
-//        }
-//        else if (type.equals(SMALLINT)) {
-//        }
-//        else if (type.equals(TIME)) {
-//        }
-//        else if (type.equals(TIMESTAMP)) {
-//        }
-//        else if (type.equals(TINYINT)) {
-//        }
-//        else if (type.equals(BOOLEAN)) {
-//        }
-//        else if (type.equals(DOUBLE)) {
-//        }
-//        else if (type.equals(VARBINARY)) {
-//        }
-//        else if (type instanceof VarcharType) {
-//        }
-//        else {
-//            throw new UnsupportedOperationException("Unsupported type " + type + " valaueClass " + value.getClass());
-//        }
+        private ParameterizedType type;
+
+        public MyTypeReference(Class<?> keyType, Class<?> valueType)
+        {
+            this.type = ParameterizedTypeImpl.make(Map.class, new java.lang.reflect.Type[] {keyType, valueType}, null);
+        }
+
+        @Override
+        public java.lang.reflect.Type getType()
+        {
+            return this.type;
+        }
     }
 
     @Override
