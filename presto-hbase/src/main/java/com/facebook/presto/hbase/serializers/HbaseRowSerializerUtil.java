@@ -3,7 +3,6 @@ package com.facebook.presto.hbase.serializers;
 import com.facebook.presto.hbase.Types;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
-import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeUtils;
 import com.facebook.presto.spi.type.VarcharType;
@@ -181,7 +180,7 @@ public final class HbaseRowSerializerUtil
         Type valueType = mapType.getTypeParameters().get(1);
         Map<?, ?> map = MAPPER.readValue(bytes, new MyTypeReference(keyType.getJavaType(), valueType.getJavaType()));
 
-        BlockBuilder mapBlockBuilder = mapType.createBlockBuilder(new BlockBuilderStatus(), 1);
+        BlockBuilder mapBlockBuilder = mapType.createBlockBuilder(null, 1);
         BlockBuilder builder = mapBlockBuilder.beginBlockEntry();
 
         for (Map.Entry<?, ?> entry : map.entrySet()) {
@@ -221,7 +220,7 @@ public final class HbaseRowSerializerUtil
             throws IOException
     {
         List<?> array = MAPPER.readValue(bytes, List.class);
-        BlockBuilder builder = elementType.createBlockBuilder(new BlockBuilderStatus(), array.size());
+        BlockBuilder builder = elementType.createBlockBuilder(null, array.size());
         for (Object item : array) {
             writeObject(builder, elementType, item);
         }

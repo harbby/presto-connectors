@@ -34,7 +34,7 @@ public class KuduModule
         binder.bind(KuduRecordSetProvider.class).in(Scopes.SINGLETON);
         binder.bind(KuduHandleResolver.class).in(Scopes.SINGLETON);
         //---insert----
-        binder.bind(KuduRecordSinkProvider.class).in(Scopes.SINGLETON);
+        binder.bind(KuduPageSinkProvider.class).in(Scopes.SINGLETON);
 
         binder.bind(KuduTableManager.class).in(Scopes.SINGLETON);
     }

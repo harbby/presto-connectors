@@ -15,8 +15,8 @@ package com.facebook.presto.kudu;
 
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
+import com.facebook.presto.spi.connector.ConnectorPageSinkProvider;
 import com.facebook.presto.spi.connector.ConnectorRecordSetProvider;
-import com.facebook.presto.spi.connector.ConnectorRecordSinkProvider;
 import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.transaction.IsolationLevel;
@@ -38,7 +38,7 @@ public class KuduConnector
     private final KuduMetadata metadata;
     private final KuduSplitManager splitManager;
     private final KuduRecordSetProvider recordSetProvider;
-    private final KuduRecordSinkProvider kuduRecordSinkProvider;
+    private final KuduPageSinkProvider pageSinkProvider;
 
     @Inject
     public KuduConnector(
@@ -46,13 +46,13 @@ public class KuduConnector
             KuduMetadata metadata,
             KuduSplitManager splitManager,
             KuduRecordSetProvider recordSetProvider,
-            KuduRecordSinkProvider kuduRecordSinkProvider)
+            KuduPageSinkProvider pageSinkProvider)
     {
         this.recordSetProvider = recordSetProvider;
         this.lifeCycleManager = requireNonNull(lifeCycleManager, "lifeCycleManager is null");
         this.metadata = requireNonNull(metadata, "metadata is null");
         this.splitManager = requireNonNull(splitManager, "splitManager is null");
-        this.kuduRecordSinkProvider = requireNonNull(kuduRecordSinkProvider, "kuduRecordSinkProvider is null");
+        this.pageSinkProvider = requireNonNull(pageSinkProvider, "kuduPageSinkProvider is null");
     }
 
     @Override
@@ -81,9 +81,9 @@ public class KuduConnector
     }
 
     @Override
-    public ConnectorRecordSinkProvider getRecordSinkProvider()
+    public ConnectorPageSinkProvider getPageSinkProvider()
     {
-        return kuduRecordSinkProvider;
+        return pageSinkProvider;
     }
 
     @Override

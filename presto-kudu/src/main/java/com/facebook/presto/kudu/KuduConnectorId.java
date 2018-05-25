@@ -1,6 +1,7 @@
 package com.facebook.presto.kudu;
 
 import java.util.Objects;
+
 import static java.util.Objects.requireNonNull;
 
 public class KuduConnectorId

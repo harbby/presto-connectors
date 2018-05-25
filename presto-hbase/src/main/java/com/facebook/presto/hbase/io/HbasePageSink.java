@@ -40,7 +40,7 @@ public class HbasePageSink
     public static final int MAX_PUT_NUM = 10_000;
 
     private final List<Put> puts;
-    private Table htable = null;
+    private Table hTable;
     private long numRows;
     private final List<HbaseColumnHandle> columns;
     private final int rowIdOrdinal;
@@ -64,7 +64,7 @@ public class HbasePageSink
         this.rowIdOrdinal = ordinal.get();
         this.puts = new ArrayList<>(MAX_PUT_NUM);
         try {
-            this.htable = connection.getTable(TableName.valueOf(table.getSchema(), table.getTable()));
+            this.hTable = connection.getTable(TableName.valueOf(table.getSchema(), table.getTable()));
         }
         catch (TableNotFoundException e) {
             throw new PrestoException(HBASE_TABLE_DNE, "Hbase error when getting htable and/or Indexer, table does not exist", e);
@@ -119,7 +119,7 @@ public class HbasePageSink
     private void flush()
     {
         try {
-            htable.put(puts);
+            hTable.put(puts);
         }
         catch (IOException e) {
             throw new PrestoException(UNEXPECTED_HBASE_ERROR, "puts rejected by server on flush", e);
@@ -133,8 +133,8 @@ public class HbasePageSink
     @Override
     public CompletableFuture<Collection<Slice>> finish()
     {
-        if (htable != null) {
-            try (Table table = htable) {
+        if (hTable != null) {
+            try (Table table = hTable) {
                 table.put(puts);
             }
             catch (IOException e) {

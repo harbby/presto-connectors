@@ -43,7 +43,7 @@ import static java.util.Objects.requireNonNull;
 
 public class KuduTableManager
 {
-    private KuduClientManager kuduClientManager = null;
+    private KuduClientManager kuduClientManager;
     private final String connectorId;
 
     @Inject

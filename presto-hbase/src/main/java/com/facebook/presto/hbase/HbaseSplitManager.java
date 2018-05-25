@@ -41,7 +41,7 @@ public class HbaseSplitManager
     }
 
     @Override
-    public ConnectorSplitSource getSplits(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorTableLayoutHandle layout)
+    public ConnectorSplitSource getSplits(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorTableLayoutHandle layout, SplitSchedulingStrategy splitSchedulingStrategy)
     {
         HbaseTableLayoutHandle layoutHandle = (HbaseTableLayoutHandle) layout;
         HbaseTableHandle tableHandle = layoutHandle.getTable();

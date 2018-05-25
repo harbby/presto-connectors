@@ -6,7 +6,7 @@
     <parent>
         <artifactId>presto-root</artifactId>
         <groupId>com.facebook.presto</groupId>
-        <version>0.189</version>
+        <version>0.202</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -18,8 +18,8 @@
     </properties>
 
     <modules>
-        <module>presto-hbase</module>
         <module>presto-kudu</module>
+        <module>presto-hbase</module>
         <module>hbase-apache2</module>
     </modules>
 
