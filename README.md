@@ -5,7 +5,7 @@ The Presto-runners
 Presto-runners builds use Maven and requires Java 8 or higher.
 
 ```
-# Build Sheep and install distributions
+# Build and install distributions
 ./mvn clean package -DskipTests
 
 # Clean the build
