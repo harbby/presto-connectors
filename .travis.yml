@@ -21,7 +21,7 @@ install:
   - mvn -v
 
 script:
-  mvn install -DskipTests -B -T C1 -P ci
+  mvn install -DskipTests
 
 before_cache:
   # Make the cache stable between builds by removing build output
