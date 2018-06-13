@@ -21,6 +21,7 @@
         <module>presto-kudu</module>
         <module>presto-hbase</module>
         <module>hbase-apache2</module>
+        <module>presto-elasticsearch</module>
     </modules>
 
 </project>
