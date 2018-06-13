@@ -7,10 +7,11 @@ presto connector for kudu database
 ## Requirements
 
 * Mac OS X or Linux
-* Presto 0.170
+* Presto 0.203
 * Java 8 Update 92 or higher (8u92+), 64-bit
 * Maven 3.3.9+ (for building)
 * Python 2.7+ (for running with the launcher script)
+* kudu client 1.4.0
 
 ## Building Presto
 
