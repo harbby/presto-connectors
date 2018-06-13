@@ -50,6 +50,17 @@
             <groupId>com.facebook.presto.hadoop</groupId>
             <artifactId>hadoop-apache2</artifactId>
         </dependency>
+
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+        </dependency>
         <!--                -->
 
         <dependency>
@@ -61,16 +72,6 @@
                     <artifactId>log4j-over-slf4j</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.zookeeper</groupId>
-            <artifactId>zookeeper</artifactId>
         </dependency>
 
         <dependency>
