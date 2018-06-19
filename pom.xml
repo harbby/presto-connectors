@@ -18,10 +18,11 @@
     </properties>
 
     <modules>
+        <module>presto-elasticsearch</module>
         <module>presto-kudu</module>
         <module>presto-hbase</module>
         <module>hbase-apache2</module>
-        <module>presto-elasticsearch</module>
+        <module>elasticsearch-apache2</module>
     </modules>
 
 </project>
