@@ -14,7 +14,7 @@ Presto-hbase is a standard Maven project. Simply run the following command from 
 
     ./mvn clean package -DskipTests
 
-##doc
+## Doc
 
 Catalog config
 ```
