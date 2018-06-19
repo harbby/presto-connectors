@@ -7,13 +7,14 @@ import com.facebook.presto.spi.PrestoException;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.Module;
-import com.google.inject.Provider;
 import com.google.inject.Scopes;
 import io.airlift.log.Logger;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+
+import javax.inject.Provider;
 
 import java.io.IOException;
 import java.net.InetAddress;

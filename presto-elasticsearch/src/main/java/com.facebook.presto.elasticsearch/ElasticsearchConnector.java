@@ -39,8 +39,6 @@ public class ElasticsearchConnector
             ElasticsearchSplitManager splitManager,
             ElasticsearchRecordSetProvider recordSetProvider,
             ElasticsearchPageSinkProvider pageSinkProvider)
-//            ElasticsearchSessionProperties sessionProperties,
-//            ElasticsearchTableProperties tableProperties
     {
         this.lifeCycleManager = requireNonNull(lifeCycleManager, "lifeCycleManager is null");
         this.metadata = requireNonNull(metadata, "metadata is null");
@@ -50,7 +48,7 @@ public class ElasticsearchConnector
 //        this.sessionProperties = requireNonNull(sessionProperties, "sessionProperties is null");
 //        this.tableProperties = requireNonNull(tableProperties, "tableProperties is null");
     }
-    
+
     @Override
     public ConnectorTransactionHandle beginTransaction(IsolationLevel isolationLevel, boolean readOnly)
     {
