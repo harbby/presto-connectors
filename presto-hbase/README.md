@@ -15,6 +15,12 @@ Presto-hbase is a standard Maven project. Simply run the following command from 
     ./mvn clean package -DskipTests
 
 ##doc
+catalog config
+```
+connector.name=hbase
+hbase.zookeepers=node1:2181,node2:2181,node3:2181
+```
+
 创建外部表  如果存在就是映射关系  如果不存在则创建
 ```
 CREATE TABLE a1 (
