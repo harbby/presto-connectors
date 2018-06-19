@@ -16,7 +16,7 @@ Presto-hbase is a standard Maven project. Simply run the following command from 
 
 ##doc
 
-catalog config
+Catalog config
 ```
 connector.name=hbase
 hbase.zookeepers=node1:2181,node2:2181,node3:2181
