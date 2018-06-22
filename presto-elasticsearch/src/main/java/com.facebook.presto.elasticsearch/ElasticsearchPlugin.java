@@ -19,6 +19,6 @@ public class ElasticsearchPlugin
     @Override
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
-        return ImmutableList.of(new ElasticsearchConnectorFactory("es"));
+        return ImmutableList.of(new ElasticsearchConnectorFactory("elasticsearch"));
     }
 }

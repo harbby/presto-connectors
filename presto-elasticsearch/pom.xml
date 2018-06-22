@@ -10,6 +10,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>presto-elasticsearch</artifactId>
+    <description>Presto - Elasticsearch Connector</description>
+    <packaging>presto-plugin</packaging>
 
     <properties>
         <air.main.basedir>${project.parent.basedir}</air.main.basedir>
@@ -44,28 +46,28 @@
         </dependency>
 
         <!--<dependency>-->
-            <!--<groupId>io.airlift</groupId>-->
-            <!--<artifactId>concurrent</artifactId>-->
+        <!--<groupId>io.airlift</groupId>-->
+        <!--<artifactId>concurrent</artifactId>-->
         <!--</dependency>-->
 
         <!--<dependency>-->
-            <!--<groupId>com.fasterxml.jackson.core</groupId>-->
-            <!--<artifactId>jackson-core</artifactId>-->
+        <!--<groupId>com.fasterxml.jackson.core</groupId>-->
+        <!--<artifactId>jackson-core</artifactId>-->
         <!--</dependency>-->
 
         <!--<dependency>-->
-            <!--<groupId>com.google.code.findbugs</groupId>-->
-            <!--<artifactId>jsr305</artifactId>-->
+        <!--<groupId>com.google.code.findbugs</groupId>-->
+        <!--<artifactId>jsr305</artifactId>-->
         <!--</dependency>-->
 
         <!--<dependency>-->
-            <!--<groupId>io.airlift</groupId>-->
-            <!--<artifactId>json</artifactId>-->
+        <!--<groupId>io.airlift</groupId>-->
+        <!--<artifactId>json</artifactId>-->
         <!--</dependency>-->
 
         <!--<dependency>-->
-            <!--<groupId>com.fasterxml.jackson.core</groupId>-->
-            <!--<artifactId>jackson-databind</artifactId>-->
+        <!--<groupId>com.fasterxml.jackson.core</groupId>-->
+        <!--<artifactId>jackson-databind</artifactId>-->
         <!--</dependency>-->
 
         <dependency>
@@ -97,7 +99,6 @@
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
         </dependency>
-
 
         <!-- Presto SPI -->
         <dependency>

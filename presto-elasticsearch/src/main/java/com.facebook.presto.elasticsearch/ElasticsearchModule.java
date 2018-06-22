@@ -2,7 +2,7 @@ package com.facebook.presto.elasticsearch;
 
 import com.facebook.presto.elasticsearch.conf.ElasticsearchConfig;
 import com.facebook.presto.elasticsearch.io.ElasticsearchPageSinkProvider;
-import com.facebook.presto.elasticsearch.io.ElasticsearchRecordSetProvider;
+import com.facebook.presto.elasticsearch.io.ElasticsearchPageSourceProvider;
 import com.facebook.presto.spi.PrestoException;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
@@ -36,12 +36,11 @@ public class ElasticsearchModule
         binder.bind(ElasticsearchConnector.class).in(Scopes.SINGLETON);
         binder.bind(ElasticsearchMetadata.class).in(Scopes.SINGLETON);
         binder.bind(ElasticsearchSplitManager.class).in(Scopes.SINGLETON);
-        binder.bind(ElasticsearchRecordSetProvider.class).in(Scopes.SINGLETON);
+        binder.bind(ElasticsearchPageSourceProvider.class).in(Scopes.SINGLETON);
         binder.bind(ElasticsearchPageSinkProvider.class).in(Scopes.SINGLETON);
 
-//        binder.bind(HbaseTableProperties.class).in(Scopes.SINGLETON);
-//        binder.bind(HbaseSessionProperties.class).in(Scopes.SINGLETON);
-//        binder.bind(ElasticsearchTableManager.class).in(Scopes.SINGLETON);
+//        binder.bind(ElasticsearchTableProperties.class).in(Scopes.SINGLETON);
+//        binder.bind(ElasticsearchSessionProperties.class).in(Scopes.SINGLETON);
 
         binder.bind(Client.class).toProvider(ConnectionProvider.class);
     }
@@ -77,7 +76,7 @@ public class ElasticsearchModule
                 return client;
             }
             catch (IOException e) {
-                throw new PrestoException(UNEXPECTED_ES_ERROR, "Failed to get connection to HBASE", e);
+                throw new PrestoException(UNEXPECTED_ES_ERROR, "Failed to get connection to Elasticsearch", e);
             }
         }
     }

@@ -13,12 +13,12 @@ public class ElasticsearchPageSinkProvider
     @Override
     public ConnectorPageSink createPageSink(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorOutputTableHandle outputTableHandle)
     {
-        return null;
+        throw new UnsupportedOperationException("this method have't support!");
     }
 
     @Override
     public ConnectorPageSink createPageSink(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorInsertTableHandle insertTableHandle)
     {
-        return null;
+        throw new UnsupportedOperationException("this method have't support!");
     }
 }

@@ -1,12 +1,12 @@
 package com.facebook.presto.elasticsearch;
 
 import com.facebook.presto.elasticsearch.io.ElasticsearchPageSinkProvider;
-import com.facebook.presto.elasticsearch.io.ElasticsearchRecordSetProvider;
+import com.facebook.presto.elasticsearch.io.ElasticsearchPageSourceProvider;
 import com.facebook.presto.elasticsearch.model.ElasticsearchTransactionHandle;
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.facebook.presto.spi.connector.ConnectorPageSinkProvider;
-import com.facebook.presto.spi.connector.ConnectorRecordSetProvider;
+import com.facebook.presto.spi.connector.ConnectorPageSourceProvider;
 import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.transaction.IsolationLevel;
@@ -27,7 +27,7 @@ public class ElasticsearchConnector
     private final LifeCycleManager lifeCycleManager;
     private final ElasticsearchMetadata metadata;
     private final ElasticsearchSplitManager splitManager;
-    private final ElasticsearchRecordSetProvider recordSetProvider;
+    private final ElasticsearchPageSourceProvider pageSourceProvider;
     private final ElasticsearchPageSinkProvider pageSinkProvider;
 //    private final ElasticsearchSessionProperties sessionProperties;
 //    private final ElasticsearchTableProperties tableProperties;
@@ -37,13 +37,13 @@ public class ElasticsearchConnector
             LifeCycleManager lifeCycleManager,
             ElasticsearchMetadata metadata,
             ElasticsearchSplitManager splitManager,
-            ElasticsearchRecordSetProvider recordSetProvider,
+            ElasticsearchPageSourceProvider pageSourceProvider,
             ElasticsearchPageSinkProvider pageSinkProvider)
     {
         this.lifeCycleManager = requireNonNull(lifeCycleManager, "lifeCycleManager is null");
         this.metadata = requireNonNull(metadata, "metadata is null");
         this.splitManager = requireNonNull(splitManager, "splitManager is null");
-        this.recordSetProvider = requireNonNull(recordSetProvider, "recordSetProvider is null");
+        this.pageSourceProvider = requireNonNull(pageSourceProvider, "pageSourceProvider is null");
         this.pageSinkProvider = requireNonNull(pageSinkProvider, "pageSinkProvider is null");
 //        this.sessionProperties = requireNonNull(sessionProperties, "sessionProperties is null");
 //        this.tableProperties = requireNonNull(tableProperties, "tableProperties is null");
@@ -69,9 +69,9 @@ public class ElasticsearchConnector
     }
 
     @Override
-    public ConnectorRecordSetProvider getRecordSetProvider()
+    public ConnectorPageSourceProvider getPageSourceProvider()
     {
-        return this.recordSetProvider;
+        return this.pageSourceProvider;
     }
 
     @Override
