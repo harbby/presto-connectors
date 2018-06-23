@@ -175,9 +175,14 @@
                             </transformers>
                             <relocations>
                                 <relocation>
-                                    <pattern>org.apache.lucene.analysis</pattern>
-                                    <shadedPattern>${shadeBase}.org.apache.lucene.analysis</shadedPattern>
+                                    <pattern>org.apache.lucene</pattern>
+                                    <shadedPattern>${shadeBase}.org.apache.lucene</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>org.tartarus.snowball</pattern>
+                                    <shadedPattern>${shadeBase}.org.tartarus.snowballe</shadedPattern>
+                                </relocation>
+
                                 <relocation>
                                     <pattern>org.iq80.leveldb</pattern>
                                     <shadedPattern>${shadeBase}.org.iq80.leveldb</shadedPattern>
@@ -190,6 +195,11 @@
                                     <pattern>io.netty</pattern>
                                     <shadedPattern>${shadeBase}.io.netty</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>org.jboss.netty</pattern>
+                                    <shadedPattern>${shadeBase}.org.jboss.netty</shadedPattern>
+                                </relocation>
+
                                 <relocation>
                                     <pattern>com.microsoft.azure</pattern>
                                     <shadedPattern>${shadeBase}.com.microsoft.azure</shadedPattern>
@@ -319,6 +329,7 @@
                                     <exclude>org.apache.zookeeper:zookeeper</exclude>
                                     <exclude>org.jruby.joni:joni</exclude>
                                     <exclude>com.google.code.findbugs:jsr305</exclude>
+                                    <exclude>org.hdrhistogram:HdrHistogram</exclude>
                                     <!--<exclude>commons-logging:commons-logging</exclude>-->
 
                                 </excludes>

@@ -30,6 +30,10 @@
                     <artifactId>*</artifactId>
                     <groupId>org.elasticsearch</groupId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.hdrhistogram</groupId>
+                    <artifactId>HdrHistogram</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
