@@ -1,8 +1,5 @@
 package com.facebook.presto.elasticsearch.metadata;
 
-import org.elasticsearch.common.Booleans;
-import org.elasticsearch.common.Strings;
-
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -121,7 +118,7 @@ public final class Types
 
     private static boolean boolSetting(Object value, boolean defaultValue)
     {
-        return value == null ? defaultValue : Booleans.parseBoolean(value.toString(), defaultValue);
+        return value == null ? defaultValue : !(value.equals("false") || value.equals("0") || value.equals("off") || value.equals("no"));
     }
 
     private static int intSetting(Object value, int defaultValue)

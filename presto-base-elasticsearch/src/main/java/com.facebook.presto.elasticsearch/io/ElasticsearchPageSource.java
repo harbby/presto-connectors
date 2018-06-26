@@ -1,6 +1,6 @@
 package com.facebook.presto.elasticsearch.io;
 
-import com.facebook.presto.elasticsearch.ElasticsearchClient;
+import com.facebook.presto.elasticsearch.BaseClient;
 import com.facebook.presto.elasticsearch.model.ElasticsearchColumnHandle;
 import com.facebook.presto.elasticsearch.model.ElasticsearchSplit;
 import com.facebook.presto.spi.ConnectorPageSource;
@@ -12,9 +12,9 @@ import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeSignatureParameter;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.airlift.slice.Slice;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.search.SearchHit;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,7 +24,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
+import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.ES_MAPPING_EXISTS;
 import static com.facebook.presto.elasticsearch.Types.isArrayType;
 import static com.facebook.presto.elasticsearch.Types.isMapType;
 import static com.facebook.presto.elasticsearch.Types.isRowType;
@@ -44,6 +46,7 @@ import static java.util.stream.Collectors.toList;
 public class ElasticsearchPageSource
         implements ConnectorPageSource
 {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int ROWS_PER_REQUEST = 1024;
 
     private final List<String> columnNames;
@@ -51,13 +54,13 @@ public class ElasticsearchPageSource
 
     private long count;
     private boolean finished;
-    private final SearchResponse response;
-    private final Iterator<SearchHit> hitIterator;
+    private final Iterator<Stream<Map<String, Object>>> queryResponse;
+    private Iterator<Map<String, Object>> batchIterator;
 
     private PageBuilder pageBuilder;
 
     public ElasticsearchPageSource(
-            ElasticsearchClient elasticsearchClient,
+            BaseClient elasticsearchClient,
             ElasticsearchSplit split,
             List<ElasticsearchColumnHandle> columns)
     {
@@ -65,9 +68,10 @@ public class ElasticsearchPageSource
         this.columnTypes = columns.stream().map(ElasticsearchColumnHandle::getType).collect(toList());
 
         //--exec query
-        this.response = elasticsearchClient.execute(split, columns);
-        this.hitIterator = response.getHits().iterator();
-
+        this.queryResponse = elasticsearchClient.execute(split, columns);
+        if (queryResponse.hasNext()) {
+            this.batchIterator = queryResponse.next().iterator();
+        }
         pageBuilder = new PageBuilder(columnTypes);
     }
 
@@ -80,7 +84,7 @@ public class ElasticsearchPageSource
     @Override
     public long getReadTimeNanos()
     {
-        return response.getTookInMillis();
+        return 0;
     }
 
     @Override
@@ -95,12 +99,17 @@ public class ElasticsearchPageSource
         verify(pageBuilder.isEmpty());
         count = 0;
         for (int i = 0; i < ROWS_PER_REQUEST; i++) {
-            if (!hitIterator.hasNext()) {
-                finished = true;
-                break;
+            if (batchIterator == null || !batchIterator.hasNext()) {
+                if (queryResponse.hasNext()) {
+                    this.batchIterator = queryResponse.next().iterator();
+                    batchIterator.hasNext();
+                }
+                else {
+                    finished = true;
+                    break;
+                }
             }
-            SearchHit searchHit = hitIterator.next();
-            Map<String, Object> sourceMap = searchHit.getSource();
+            Map<String, Object> sourceMap = batchIterator.next();
             count++;
 
             pageBuilder.declarePosition();
@@ -185,8 +194,12 @@ public class ElasticsearchPageSource
             return "[" + String.join(", ", ((Collection<?>) value).stream().map(this::toVarcharValue).collect(toList())) + "]";
         }
         if (value instanceof Map) {
-            //TODO: Map to json
-            throw new UnsupportedOperationException("this value instanceof Map have't support!");
+            try {
+                return MAPPER.writeValueAsString(value);
+            }
+            catch (JsonProcessingException e) {
+                throw new PrestoException(ES_MAPPING_EXISTS, e);
+            }
         }
         return String.valueOf(value);
     }

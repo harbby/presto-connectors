@@ -38,13 +38,13 @@ public class ElasticsearchMetadata
         implements ConnectorMetadata
 {
     private final String connectorId;
-    private final ElasticsearchClient client;
+    private final BaseClient client;
     private final AtomicReference<Runnable> rollbackAction = new AtomicReference<>();  //lock
 
     @Inject
     public ElasticsearchMetadata(
             ElasticsearchConnectorId connectorId,
-            ElasticsearchClient client)
+            BaseClient client)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null").toString();
         this.client = requireNonNull(client, "client is null");

@@ -5,10 +5,12 @@ import com.facebook.presto.elasticsearch.metadata.EsIndex;
 import com.facebook.presto.elasticsearch.model.ElasticsearchColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.VarcharType;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -18,23 +20,14 @@ public class ElasticsearchTable
     private final String table;
     private final List<ElasticsearchColumnHandle> columns;
     private final List<ColumnMetadata> columnsMetadata;
+    private final TypeManager typeManager;
 
-    ElasticsearchTable(String schema, String table, final EsIndex esIndex)
+    ElasticsearchTable(TypeManager typeManager, String schema, String table, final EsIndex esIndex)
     {
         requireNonNull(esIndex, "esIndex is null");
         this.schema = requireNonNull(schema, "schema is null");
         this.table = table;
-
-        ImmutableList.Builder<ColumnMetadata> columnMetadataBuilder = ImmutableList.builder();
-        columnMetadataBuilder.add(new ColumnMetadata("_dsl", VarcharType.VARCHAR));
-        columnMetadataBuilder.add(new ColumnMetadata("_type", VarcharType.VARCHAR));
-        columnMetadataBuilder.add(new ColumnMetadata("_id", VarcharType.VARCHAR));
-        for (EsField esField : esIndex.mapping().values()) {
-            Type type = PrestoTypes.toPrestoType(esField);
-            String comment = null;  //字段注释
-            columnMetadataBuilder.add(new ColumnMetadata(esField.getName(), type, comment, false));
-        }
-        this.columnsMetadata = columnMetadataBuilder.build();
+        this.typeManager = typeManager;
 
         //---------------------------------
         ImmutableList.Builder<ElasticsearchColumnHandle> columnHandleBuilder = ImmutableList.builder();
@@ -42,7 +35,7 @@ public class ElasticsearchTable
         columnHandleBuilder.add(new ElasticsearchColumnHandle("_type", VarcharType.VARCHAR, "", false));
         columnHandleBuilder.add(new ElasticsearchColumnHandle("_id", VarcharType.VARCHAR, "", false));
         for (EsField esField : esIndex.mapping().values()) {
-            Type type = PrestoTypes.toPrestoType(esField);
+            Type type = PrestoTypes.toPrestoType(typeManager, esField);
             String comment = "";  //字段注释
             ElasticsearchColumnHandle columnHandle = new ElasticsearchColumnHandle(
                     esField.getName(),
@@ -52,6 +45,7 @@ public class ElasticsearchTable
             columnHandleBuilder.add(columnHandle);
         }
         this.columns = columnHandleBuilder.build();
+        this.columnsMetadata = columns.stream().map(x -> x.getColumnMetadata()).collect(Collectors.toList());
     }
 
     public String getSchema()

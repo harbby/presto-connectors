@@ -1,6 +1,6 @@
 package com.facebook.presto.elasticsearch.metadata;
 
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 
 import java.util.Map;
 import java.util.Objects;

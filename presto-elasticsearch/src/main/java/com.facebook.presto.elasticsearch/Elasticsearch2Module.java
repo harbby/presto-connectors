@@ -1,14 +1,10 @@
 package com.facebook.presto.elasticsearch;
 
 import com.facebook.presto.elasticsearch.conf.ElasticsearchConfig;
-import com.facebook.presto.elasticsearch.io.ElasticsearchPageSinkProvider;
-import com.facebook.presto.elasticsearch.io.ElasticsearchPageSourceProvider;
 import com.facebook.presto.spi.PrestoException;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.Module;
-import com.google.inject.Scopes;
-import io.airlift.log.Logger;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
@@ -23,7 +19,7 @@ import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.UNEXPECTE
 import static io.airlift.configuration.ConfigBinder.configBinder;
 import static java.util.Objects.requireNonNull;
 
-public class ElasticsearchModule
+public class Elasticsearch2Module
         implements Module
 {
     @Override
@@ -31,13 +27,7 @@ public class ElasticsearchModule
     {
         configBinder(binder).bindConfig(ElasticsearchConfig.class);
 
-        binder.bind(ElasticsearchClient.class).in(Scopes.SINGLETON);
-
-        binder.bind(ElasticsearchConnector.class).in(Scopes.SINGLETON);
-        binder.bind(ElasticsearchMetadata.class).in(Scopes.SINGLETON);
-        binder.bind(ElasticsearchSplitManager.class).in(Scopes.SINGLETON);
-        binder.bind(ElasticsearchPageSourceProvider.class).in(Scopes.SINGLETON);
-        binder.bind(ElasticsearchPageSinkProvider.class).in(Scopes.SINGLETON);
+        binder.bind(BaseClient.class).to(Elasticsearch2Client.class);
 
 //        binder.bind(ElasticsearchTableProperties.class).in(Scopes.SINGLETON);
 //        binder.bind(ElasticsearchSessionProperties.class).in(Scopes.SINGLETON);
@@ -48,7 +38,7 @@ public class ElasticsearchModule
     private static class ConnectionProvider
             implements Provider<Client>
     {
-        private static final Logger LOG = Logger.get(ConnectionProvider.class);
+        //private static final Logger LOG = Logger.get(ConnectionProvider.class);
         private final String clusterName;
         private final String hosts;
 
@@ -72,7 +62,7 @@ public class ElasticsearchModule
                             new InetSocketTransportAddress(InetAddress.getByName(ip.split(":")[0]),
                                     Integer.parseInt(ip.split(":")[1])));
                 }
-                LOG.info("Connection to instance %s at %s established, user %s");
+                //LOG.info("Connection to instance %s at %s established, user %s");
                 return client;
             }
             catch (IOException e) {

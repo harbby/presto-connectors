@@ -1,6 +1,6 @@
 package com.facebook.presto.elasticsearch.io;
 
-import com.facebook.presto.elasticsearch.ElasticsearchClient;
+import com.facebook.presto.elasticsearch.BaseClient;
 import com.facebook.presto.elasticsearch.model.ElasticsearchColumnHandle;
 import com.facebook.presto.elasticsearch.model.ElasticsearchSplit;
 import com.facebook.presto.spi.ColumnHandle;
@@ -20,10 +20,10 @@ import static java.util.Objects.requireNonNull;
 public class ElasticsearchPageSourceProvider
         implements ConnectorPageSourceProvider
 {
-    private final ElasticsearchClient elasticsearchClient;
+    private final BaseClient elasticsearchClient;
 
     @Inject
-    public ElasticsearchPageSourceProvider(ElasticsearchClient elasticsearchClient)
+    public ElasticsearchPageSourceProvider(BaseClient elasticsearchClient)
     {
         this.elasticsearchClient = requireNonNull(elasticsearchClient, "elasticsearchClient is null");
     }

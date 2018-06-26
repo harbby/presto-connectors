@@ -21,20 +21,23 @@ public class ElasticsearchSplit
     private final String table;
     private final List<HostAddress> addresses;
 
-    private final ElasticsearchTableLayoutHandle layoutHandle;
+    private final String scrollId;
+    private final long timeValue;
 
     @JsonCreator
     public ElasticsearchSplit(
             @JsonProperty("connectorId") String connectorId,
             @JsonProperty("schema") String schema,
             @JsonProperty("table") String table,
-            @JsonProperty("layoutHandle") ElasticsearchTableLayoutHandle layoutHandle,
+            @JsonProperty("scrollId") String scrollId,
+            @JsonProperty("timeValue") long timeValue,
             @JsonProperty("hostPort") Optional<String> hostPort)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
         this.schema = requireNonNull(schema, "schema is null");
         this.table = requireNonNull(table, "table is null");
-        this.layoutHandle = requireNonNull(layoutHandle, "layoutHandle is null");
+        this.scrollId = requireNonNull(scrollId, "scrollId is null");
+        this.timeValue = requireNonNull(timeValue, "timeValue is null");
 
         // Parse the host address into a list of addresses, this would be an Elasticsearch Tablet server or some localhost thing
         if (hostPort.isPresent()) {
@@ -52,9 +55,15 @@ public class ElasticsearchSplit
     }
 
     @JsonProperty
-    public ElasticsearchTableLayoutHandle getLayoutHandle()
+    public String getScrollId()
     {
-        return layoutHandle;
+        return scrollId;
+    }
+
+    @JsonProperty
+    public long getTimeValue()
+    {
+        return timeValue;
     }
 
     @JsonProperty
@@ -74,12 +83,6 @@ public class ElasticsearchSplit
     {
         return (this.getSchema().equals("default") ? "" : this.getSchema() + ".") + this.getTable();
     }
-
-//    @JsonProperty
-//    public String getSerializerClassName()
-//    {
-//        return this.serializerClassName;
-//    }
 
     @Override
     public boolean isRemotelyAccessible()
@@ -107,7 +110,8 @@ public class ElasticsearchSplit
                 .add("schema", schema)
                 .add("table", table)
                 .add("addresses", addresses)
-                .add("layoutHandle", layoutHandle)
+                .add("scrollId", scrollId)
+                .add("timeValue", timeValue)
                 .toString();
     }
 }

@@ -5,8 +5,6 @@
  */
 package com.facebook.presto.elasticsearch.metadata;
 
-import org.elasticsearch.common.util.CollectionUtils;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +22,7 @@ public class DateEsField
     public DateEsField(String name, Map<String, EsField> properties, boolean hasDocValues, String... formats)
     {
         super(name, DataType.DATE, properties, hasDocValues);
-        this.formats = CollectionUtils.isEmpty(formats) ? DEFAULT_FORMAT : Arrays.asList(formats);
+        this.formats = (formats == null || formats.length == 0) ? DEFAULT_FORMAT : Arrays.asList(formats);
     }
 
     @Override

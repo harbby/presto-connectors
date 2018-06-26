@@ -175,8 +175,12 @@
                             </transformers>
                             <relocations>
                                 <relocation>
-                                    <pattern>org.apache.lucene</pattern>
-                                    <shadedPattern>${shadeBase}.org.apache.lucene</shadedPattern>
+                                    <pattern>org.apache.lucene.analysis</pattern>
+                                    <shadedPattern>${shadeBase}.org.apache.lucene.analysis</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.lucene.collation</pattern>
+                                    <shadedPattern>${shadeBase}.org.apache.lucene.collation</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.tartarus.snowball</pattern>
