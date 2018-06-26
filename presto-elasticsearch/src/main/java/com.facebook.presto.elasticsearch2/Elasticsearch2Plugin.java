@@ -1,4 +1,6 @@
-package com.facebook.presto.elasticsearch;
+package com.facebook.presto.elasticsearch2;
+
+import com.facebook.presto.elasticsearch.ElasticsearchPlugin;
 
 public class Elasticsearch2Plugin
         extends ElasticsearchPlugin

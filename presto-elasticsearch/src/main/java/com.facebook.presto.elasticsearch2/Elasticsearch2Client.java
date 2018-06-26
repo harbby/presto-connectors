@@ -1,6 +1,8 @@
-package com.facebook.presto.elasticsearch;
+package com.facebook.presto.elasticsearch2;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import com.facebook.presto.elasticsearch.BaseClient;
+import com.facebook.presto.elasticsearch.ElasticsearchTable;
 import com.facebook.presto.elasticsearch.conf.ElasticsearchConfig;
 import com.facebook.presto.elasticsearch.metadata.EsField;
 import com.facebook.presto.elasticsearch.metadata.EsIndex;

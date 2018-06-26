@@ -1,5 +1,6 @@
-package com.facebook.presto.elasticsearch;
+package com.facebook.presto.elasticsearch2;
 
+import com.facebook.presto.elasticsearch.BaseClient;
 import com.facebook.presto.elasticsearch.conf.ElasticsearchConfig;
 import com.facebook.presto.spi.PrestoException;
 import com.google.inject.Binder;
