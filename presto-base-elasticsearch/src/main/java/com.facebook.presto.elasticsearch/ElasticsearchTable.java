@@ -22,7 +22,7 @@ public class ElasticsearchTable
     private final List<ColumnMetadata> columnsMetadata;
     private final TypeManager typeManager;
 
-    ElasticsearchTable(TypeManager typeManager, String schema, String table, final EsIndex esIndex)
+    public ElasticsearchTable(TypeManager typeManager, String schema, String table, final EsIndex esIndex)
     {
         requireNonNull(esIndex, "esIndex is null");
         this.schema = requireNonNull(schema, "schema is null");

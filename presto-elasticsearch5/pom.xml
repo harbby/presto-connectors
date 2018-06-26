@@ -45,6 +45,14 @@
                     <artifactId>org.elasticsearch</artifactId>
                     <groupId>elasticsearch</groupId>
                 </exclusion>
+                <exclusion>
+                    <artifactId>jackson-dataformat-smile</artifactId>
+                    <groupId>com.fasterxml.jackson.dataformat</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>jackson-core</artifactId>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
 
@@ -74,6 +82,11 @@
             <artifactId>javax.inject</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <!-- Presto SPI -->
         <dependency>
