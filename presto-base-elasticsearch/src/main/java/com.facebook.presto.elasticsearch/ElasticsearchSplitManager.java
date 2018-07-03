@@ -37,18 +37,8 @@ public class ElasticsearchSplitManager
         ElasticsearchTableLayoutHandle layoutHandle = (ElasticsearchTableLayoutHandle) layout;
         ElasticsearchTableHandle tableHandle = layoutHandle.getTable();
 
-        String schemaName = tableHandle.getSchemaName();
-        String tableName = tableHandle.getTableName();
-
-        //TODO: 这里需要重新实现, 目前只做实验
-        // Get non-dsl column constraints
-//        List<ElasticsearchColumnConstraint> constraints = getColumnConstraints("_dsl", layoutHandle.getConstraint());
-//
-//        // Get the dsl column range
-//        Optional<Domain> rDom = getRangeDomain("_dsl", layoutHandle.getConstraint());
-//
 //        // Call out to our client to retrieve all tablet split metadata using the row ID domain and the secondary index
-        List<ElasticsearchSplit> tabletSplits = client.getTabletSplits(tableHandle, layoutHandle); //tableHandle.getSerializerInstance()
+        List<ElasticsearchSplit> tabletSplits = client.getTabletSplits(session, tableHandle, layoutHandle, splitSchedulingStrategy); //tableHandle.getSerializerInstance()
 
         // Pack the tablet split metadata into a connector split
         return new FixedSplitSource(tabletSplits);

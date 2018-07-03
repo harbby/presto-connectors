@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
@@ -21,23 +22,26 @@ public class ElasticsearchSplit
     private final String table;
     private final List<HostAddress> addresses;
 
-    private final String scrollId;
+    private final byte[] searchRequest;
     private final long timeValue;
+    private final Map<String, String> pushDownDsl;
 
     @JsonCreator
     public ElasticsearchSplit(
             @JsonProperty("connectorId") String connectorId,
             @JsonProperty("schema") String schema,
             @JsonProperty("table") String table,
-            @JsonProperty("scrollId") String scrollId,
+            @JsonProperty("searchRequest") byte[] searchRequest,
             @JsonProperty("timeValue") long timeValue,
+            @JsonProperty("pushDownDsl") Map<String, String> pushDownDsl,
             @JsonProperty("hostPort") Optional<String> hostPort)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
         this.schema = requireNonNull(schema, "schema is null");
         this.table = requireNonNull(table, "table is null");
-        this.scrollId = requireNonNull(scrollId, "scrollId is null");
-        this.timeValue = requireNonNull(timeValue, "timeValue is null");
+        this.searchRequest = requireNonNull(searchRequest, "searchRequest is null");
+        this.timeValue = timeValue;
+        this.pushDownDsl = requireNonNull(pushDownDsl, "pushDownDsl is null");
 
         // Parse the host address into a list of addresses, this would be an Elasticsearch Tablet server or some localhost thing
         if (hostPort.isPresent()) {
@@ -55,9 +59,9 @@ public class ElasticsearchSplit
     }
 
     @JsonProperty
-    public String getScrollId()
+    public byte[] getSearchRequest()
     {
-        return scrollId;
+        return searchRequest;
     }
 
     @JsonProperty
@@ -82,6 +86,12 @@ public class ElasticsearchSplit
     public String getFullTableName()
     {
         return (this.getSchema().equals("default") ? "" : this.getSchema() + ".") + this.getTable();
+    }
+
+    @JsonProperty
+    public Map<String, String> getPushDownDsl()
+    {
+        return pushDownDsl;
     }
 
     @Override
@@ -110,8 +120,9 @@ public class ElasticsearchSplit
                 .add("schema", schema)
                 .add("table", table)
                 .add("addresses", addresses)
-                .add("scrollId", scrollId)
+                .add("searchRequest", searchRequest)
                 .add("timeValue", timeValue)
+                .add("pushDownDsl", pushDownDsl)
                 .toString();
     }
 }

@@ -5,6 +5,7 @@ import com.facebook.presto.spi.ErrorCodeSupplier;
 import com.facebook.presto.spi.ErrorType;
 
 import static com.facebook.presto.spi.ErrorType.EXTERNAL;
+import static com.facebook.presto.spi.ErrorType.USER_ERROR;
 
 public enum ElasticsearchErrorCode
         implements ErrorCodeSupplier
@@ -14,14 +15,16 @@ public enum ElasticsearchErrorCode
     UNEXPECTED_ES_ERROR(1, EXTERNAL),
 
     // Thrown when a serialization error occurs when reading/writing data from/to Elasticsearch
-    IO_ERROR(3, EXTERNAL),
+    IO_ERROR(2, EXTERNAL),
 
     // Thrown when a table that is expected to exist does not exist
-    ES_TABLE_DNE(4, EXTERNAL),
+    ES_TABLE_DNE(3, EXTERNAL),
 
-    ES_TABLE_CLOSE_ERR(5, EXTERNAL),
+    ES_TABLE_CLOSE_ERR(4, EXTERNAL),
 
-    ES_TABLE_EXISTS(6, EXTERNAL),
+    ES_TABLE_EXISTS(5, EXTERNAL),
+
+    ES_DSL_ERROR(6, USER_ERROR),
 
     ES_MAPPING_EXISTS(7, EXTERNAL);
 

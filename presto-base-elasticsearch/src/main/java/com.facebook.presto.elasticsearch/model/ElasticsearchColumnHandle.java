@@ -19,19 +19,22 @@ public class ElasticsearchColumnHandle
     private final String comment;
     private final String name;
     private final boolean keyword;
+    private final boolean hidden;
 
     @JsonCreator
     public ElasticsearchColumnHandle(
             @JsonProperty("name") String name,
             @JsonProperty("type") Type type,
             @JsonProperty("comment") String comment,  //注释
-            @JsonProperty("keyword") boolean keyword) //是否分词
+            @JsonProperty("keyword") boolean keyword, //是否分词 5.x
+            @JsonProperty("hidden") boolean hidden)
     {
         this.name = requireNonNull(name, "columnName is null");
         this.type = requireNonNull(type, "type is null");
 
         this.comment = requireNonNull(comment, "comment is null");
         this.keyword = keyword;
+        this.hidden = hidden;
     }
 
     @JsonProperty
@@ -58,10 +61,16 @@ public class ElasticsearchColumnHandle
         return keyword;
     }
 
+    @JsonProperty
+    public boolean isHidden()
+    {
+        return hidden;
+    }
+
     @JsonIgnore
     public ColumnMetadata getColumnMetadata()
     {
-        return new ColumnMetadata(name, type, comment, false);
+        return new ColumnMetadata(name, type, comment, hidden);
     }
 
     @Override
@@ -84,8 +93,8 @@ public class ElasticsearchColumnHandle
         ElasticsearchColumnHandle other = (ElasticsearchColumnHandle) obj;
         return Objects.equals(this.name, other.name)
                 && Objects.equals(this.type, other.type)
-//                && Objects.equals(this.ordinal, other.ordinal)
                 && Objects.equals(this.keyword, other.keyword)
+                && Objects.equals(this.hidden, other.hidden)
                 && Objects.equals(this.comment, other.comment);
     }
 
@@ -95,9 +104,9 @@ public class ElasticsearchColumnHandle
         return toStringHelper(this)
                 .add("name", name)
                 .add("type", type)
-//                .add("ordinal", ordinal)
                 .add("keyword", keyword)
                 .add("comment", comment)
+                .add("hidden", hidden)
                 .toString();
     }
 }

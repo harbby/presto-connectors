@@ -121,6 +121,7 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <!-- 在发现jar包依赖冲突的情况下,是否构建失败  :设置flase为构建不失败 true为构建失败 -->
                     <failBuildInCaseOfConflict>true</failBuildInCaseOfConflict>
                 </configuration>
             </plugin>

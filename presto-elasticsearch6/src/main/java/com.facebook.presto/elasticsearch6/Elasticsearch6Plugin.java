@@ -1,23 +1,24 @@
-package com.facebook.presto.elasticsearch5;
+package com.facebook.presto.elasticsearch6;
 
 import com.facebook.presto.elasticsearch.ElasticsearchPlugin;
+import com.facebook.presto.elasticsearch6.functions.MatchQueryFunction;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.Set;
 
-public class Elasticsearch5Plugin
+public class Elasticsearch6Plugin
         extends ElasticsearchPlugin
 {
     @Override
     public Set<Class<?>> getFunctions()
     {
         return ImmutableSet.<Class<?>>builder()
-//                .add(MatchQueryFunction.class)
+                .add(MatchQueryFunction.class)
                 .build();
     }
 
-    public Elasticsearch5Plugin()
+    public Elasticsearch6Plugin()
     {
-        super("elasticsearch5", new Elasticsearch5Module());
+        super("elasticsearch6", new Elasticsearch6Module());
     }
 }

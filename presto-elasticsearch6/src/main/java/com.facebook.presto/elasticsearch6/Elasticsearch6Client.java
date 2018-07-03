@@ -1,4 +1,4 @@
-package com.facebook.presto.elasticsearch2;
+package com.facebook.presto.elasticsearch6;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.facebook.presto.elasticsearch.BaseClient;
@@ -16,7 +16,7 @@ import com.facebook.presto.elasticsearch.model.ElasticsearchColumnHandle;
 import com.facebook.presto.elasticsearch.model.ElasticsearchSplit;
 import com.facebook.presto.elasticsearch.model.ElasticsearchTableHandle;
 import com.facebook.presto.elasticsearch.model.ElasticsearchTableLayoutHandle;
-import com.facebook.presto.elasticsearch2.functions.MatchQueryFunction;
+import com.facebook.presto.elasticsearch6.functions.MatchQueryFunction;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PrestoException;
@@ -39,7 +39,6 @@ import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
@@ -50,6 +49,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -57,8 +57,9 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchModule;
-
-import javax.inject.Inject;
+import org.elasticsearch.search.sort.FieldSortBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -83,15 +84,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 
-public final class Elasticsearch2Client
+public class Elasticsearch6Client
         implements BaseClient
 {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final Client client;
     private EsTypeTypeManager typeManager;
 
-    @Inject
-    public Elasticsearch2Client(
+    @javax.inject.Inject
+    public Elasticsearch6Client(
             EsTypeTypeManager typeManager,
             Client client,
             ElasticsearchConfig elasticsearchConfig)
@@ -126,18 +127,19 @@ public final class Elasticsearch2Client
         final boolean splitShardsEnabled = ElasticsearchSessionProperties.isOptimizeSplitShardsEnabled(session);
         final int batchSize = ElasticsearchSessionProperties.getScrollSearchBatchSize(session);
         final Map<String, String> queryDsl = getQueryDsl(layoutHandle.getConstraint());
-        //System.out.println(client.prepareSearch(index).setQuery(queryDsl.get("_allDsl")).get());
+        //System.out.println(client.prepareSearch(index).setQuery(QueryBuilders.wrapperQuery(queryDsl.get("_allDsl"))).get());
         final ImmutableList.Builder<SearchRequest> splitBuilder = ImmutableList.builder();
 
         if (splitShardsEnabled && splitSchedulingStrategy == GROUPED_SCHEDULING) {
             for (ClusterSearchShardsGroup shardsGroup : client.admin().cluster().prepareSearchShards(index).get().getGroups()) {
-                int shardId = shardsGroup.getShardId();
+                int shardId = shardsGroup.getShardId().getId();
                 SearchRequestBuilder requestBuilder = client.prepareSearch(index)
-                        //.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC)   //5.x
-                        .setQuery(queryDsl.get("_allDsl"))
+                        //.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC)
+                        .setQuery(QueryBuilders.wrapperQuery(queryDsl.get("_allDsl")))
                         .setPreference("_shards:" + shardId)   //_shards:2,3
                         .setSize(batchSize)  //max of 100 hits will be returned for each scroll
-                        .setSearchType(SearchType.SCAN)  ////不加这个会导致 此处直接就返回数据(数据会在driver主节点上)
+                        //.setSearchType(SearchType.SCAN)  ////不加这个会导致 此处直接就返回数据(数据会在driver主节点上)
+                        .addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC)   //es 5.x
                         .setScroll(new TimeValue(timeValue));  //1m
 
                 splitBuilder.add(requestBuilder.request());
@@ -145,10 +147,11 @@ public final class Elasticsearch2Client
         }
         else {
             SearchRequestBuilder requestBuilder = client.prepareSearch(index)
-                    //.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC)  //5.x
-                    .setSearchType(SearchType.SCAN)   //不加这个会导致 此处直接就返回数据(数据会在driver主节点上)
+                    //.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC)
+                    //.setSearchType(SearchType.QUERY_THEN_FETCH)   //不加这个会导致 此处直接就返回数据(数据会在driver主节点上)
+                    .addSort(SortBuilders.fieldSort("_doc"))   //es 5.x
                     .setScroll(new TimeValue(timeValue))  //1m
-                    .setQuery(queryDsl.get("_allDsl"))
+                    .setQuery(QueryBuilders.wrapperQuery(queryDsl.get("_allDsl")))
                     .setSize(batchSize);  //max of 100 hits will be returned for each scroll
 
             splitBuilder.add(requestBuilder.request());
@@ -171,6 +174,16 @@ public final class Elasticsearch2Client
                 throw new PrestoException(IO_ERROR, e);
             }
         }).collect(Collectors.toList());
+    }
+
+    static NamedWriteableRegistry getNamedWriteableRegistry()
+    {
+        IndicesModule indicesModule = new IndicesModule(Collections.emptyList());
+        SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
+        List<NamedWriteableRegistry.Entry> entries = new ArrayList<>();
+        entries.addAll(indicesModule.getNamedWriteables());
+        entries.addAll(searchModule.getNamedWriteables());
+        return new NamedWriteableRegistry(entries);
     }
 
     private static Map<String, String> getQueryDsl(TupleDomain<ColumnHandle> constraint)
@@ -208,7 +221,8 @@ public final class Elasticsearch2Client
             }
         }
         try {
-            String allDsl = mergeDslMap.isEmpty() ? QueryBuilders.boolQuery().toString() : MAPPER.writeValueAsString(mergeDslMap);
+            String allDsl = mergeDslMap.isEmpty() ? QueryBuilders.boolQuery().toString() :
+                    MAPPER.writeValueAsString(mergeDslMap.get("query"));   //es5和 6开始只能返回 query的自节点
             dslCacher.put("_allDsl", allDsl);
             return dslCacher;
         }
@@ -288,17 +302,6 @@ public final class Elasticsearch2Client
         return rangeBuilder;
     }
 
-    static NamedWriteableRegistry getNamedWriteableRegistry()
-    {
-        IndicesModule indicesModule = new IndicesModule();
-        SearchModule searchModule = new SearchModule();
-//        List<NamedWriteableRegistry.Entry> entries = new ArrayList<>();
-//        entries.addAll(indicesModule.getNamedWriteables());
-//        entries.addAll(searchModule.getNamedWriteables());
-        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry();
-        return namedWriteableRegistry;
-    }
-
     @Override
     public SearchResult<Map<String, Object>> execute(ElasticsearchSplit split, List<ElasticsearchColumnHandle> columns)
     {
@@ -319,7 +322,7 @@ public final class Elasticsearch2Client
                 SearchHit[] searchHits = scrollResp.getHits().getHits();
                 return Arrays.stream(searchHits).map(searchHitFields -> {
                     ImmutableMap.Builder<String, Object> sourceLine = ImmutableMap.builder();
-                    sourceLine.putAll(searchHitFields.sourceAsMap());
+                    sourceLine.putAll(searchHitFields.getSourceAsMap());
                     sourceLine.put("_type", searchHitFields.getType());
                     sourceLine.put("_id", searchHitFields.getId());
                     sourceLine.put("_score", searchHitFields.getScore());
@@ -328,16 +331,15 @@ public final class Elasticsearch2Client
                 }).iterator();
             };
             private SearchResponse firstScrollResp = client.search(deserializedRequest).actionGet();
-            private Iterator<ImmutableMap<String, Object>> batchHitIterator;
+            private Iterator<ImmutableMap<String, Object>> batchHitIterator = func.apply(firstScrollResp);
 
             @Override
             public boolean hasNext()
             {
-                batchHitIterator.remove();
-                if (batchHitIterator != null && batchHitIterator.hasNext()) {
+                if (batchHitIterator.hasNext()) {
                     return true;
                 }
-                //---- 注意es2.x scan模式首次Scroll hits是没有数据的  --
+                //---- 获取一批新的 es5.x以上首次Scroll是有数据的 此处需要先判空 ----
                 final SearchResponse scrollResp = client.prepareSearchScroll(firstScrollResp.getScrollId())
                         .setScroll(new TimeValue(split.getTimeValue()))
                         .execute().actionGet();
@@ -354,6 +356,7 @@ public final class Elasticsearch2Client
 
             @Override
             public void close()
+                    throws IOException
             {
                 client.prepareClearScroll().addScrollId(firstScrollResp.getScrollId()).execute().actionGet();
             }
@@ -422,26 +425,9 @@ public final class Elasticsearch2Client
         }
         else if (typeNames != null) {
             Collections.sort(typeNames);
-            //TODO: 如下注释为不支持多type--
-//            return IndexResolution.invalid(
-//                    "[" + indexOrAlias + "] contains more than one type " + typeNames + " so it is incompatible with sql");
-            Map<String, EsField> mergeTypeMapping = Arrays.stream(mappings.values().toArray(MappingMetaData.class)).map(x -> {
-                try {
-                    return Types.fromEs(x.sourceAsMap());
-                }
-                catch (IOException e) {
-                    throw new MappingException("sourceAsMap error", e);
-                }
-            }).flatMap(x -> x.values().stream()).collect(Collectors.toMap(EsField::getName, v -> v, (x, y) -> {
-                if (x.hasDocValues() && y.hasDocValues()) {
-                    Map<String, EsField> fieldMap = ImmutableList.<EsField>builder().addAll(x.getProperties().values())
-                            .addAll(y.getProperties().values()).build().stream()
-                            .collect(Collectors.toMap(EsField::getName, v1 -> v1, (v3, v4) -> v4));
-                    return new EsField(x.getName(), x.getDataType(), fieldMap, true);
-                }
-                return y;
-            }));
-            return IndexResolution.valid(new EsIndex(indexOrAlias, mergeTypeMapping));
+            //es5 不支持多type--
+            return IndexResolution.invalid(
+                    "[" + indexOrAlias + "] contains more than one type " + typeNames + " so it is incompatible with sql");
         }
         else {
             try {
@@ -450,9 +436,6 @@ public final class Elasticsearch2Client
             }
             catch (MappingException ex) {
                 return IndexResolution.invalid(ex.getMessage());
-            }
-            catch (IOException e) {
-                throw new MappingException("sourceAsMap error", e);
             }
         }
     }

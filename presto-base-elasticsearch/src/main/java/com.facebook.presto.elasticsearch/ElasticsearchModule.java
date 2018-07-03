@@ -1,6 +1,7 @@
 package com.facebook.presto.elasticsearch;
 
 import com.facebook.presto.elasticsearch.conf.ElasticsearchConfig;
+import com.facebook.presto.elasticsearch.conf.ElasticsearchSessionProperties;
 import com.facebook.presto.elasticsearch.io.ElasticsearchPageSinkProvider;
 import com.facebook.presto.elasticsearch.io.ElasticsearchPageSourceProvider;
 import com.google.inject.Binder;
@@ -17,6 +18,7 @@ public class ElasticsearchModule
     {
         configBinder(binder).bindConfig(ElasticsearchConfig.class);
 
+        binder.bind(EsTypeTypeManager.class).in(Scopes.SINGLETON);
         binder.bind(ElasticsearchConnector.class).in(Scopes.SINGLETON);
         binder.bind(ElasticsearchMetadata.class).in(Scopes.SINGLETON);
         binder.bind(ElasticsearchSplitManager.class).in(Scopes.SINGLETON);
@@ -24,6 +26,6 @@ public class ElasticsearchModule
         binder.bind(ElasticsearchPageSinkProvider.class).in(Scopes.SINGLETON);
 
 //        binder.bind(ElasticsearchTableProperties.class).in(Scopes.SINGLETON);
-//        binder.bind(ElasticsearchSessionProperties.class).in(Scopes.SINGLETON);
+        binder.bind(ElasticsearchSessionProperties.class).in(Scopes.SINGLETON);
     }
 }

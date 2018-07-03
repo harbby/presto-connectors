@@ -14,17 +14,16 @@ import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeSignatureParameter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.ES_MAPPING_EXISTS;
 import static com.facebook.presto.elasticsearch.Types.isArrayType;
@@ -54,8 +53,7 @@ public class ElasticsearchPageSource
 
     private long count;
     private boolean finished;
-    private final Iterator<Stream<Map<String, Object>>> queryResponse;
-    private Iterator<Map<String, Object>> batchIterator;
+    private final SearchResult<Map<String, Object>> searchResult;
 
     private PageBuilder pageBuilder;
 
@@ -68,10 +66,7 @@ public class ElasticsearchPageSource
         this.columnTypes = columns.stream().map(ElasticsearchColumnHandle::getType).collect(toList());
 
         //--exec query
-        this.queryResponse = elasticsearchClient.execute(split, columns);
-        if (queryResponse.hasNext()) {
-            this.batchIterator = queryResponse.next().iterator();
-        }
+        this.searchResult = elasticsearchClient.execute(split, columns);
         pageBuilder = new PageBuilder(columnTypes);
     }
 
@@ -93,30 +88,74 @@ public class ElasticsearchPageSource
         return finished;
     }
 
+    /**
+     * es array字段 展平逻辑
+     * 目前只能展平一个字段 如果有多个字段则存在 如何join的问题
+     */
+    private class ArrayDocForeachFunc
+    {
+        private final int rowlisteMapColumn;
+        private final List<Map> rowlisteMap;
+        private final Map<String, Object> docMap;
+
+        private ArrayDocForeachFunc(int rowlisteMapColumn, Map<String, Object> docMap)
+        {
+            this.rowlisteMapColumn = rowlisteMapColumn;
+            this.docMap = docMap;
+            this.rowlisteMap = (List<Map>) docMap.get(columnNames.get(rowlisteMapColumn));
+        }
+
+        void accept()
+        {
+            for (int i = 1; i < rowlisteMap.size(); i++) {
+                pageBuilder.declarePosition();
+                for (int column = 0; column < columnTypes.size(); column++) {
+                    BlockBuilder output = pageBuilder.getBlockBuilder(column);
+                    Type type = columnTypes.get(column);
+                    Object value = docMap.get(columnNames.get(column));
+                    if (column == rowlisteMapColumn) {
+                        appendTo(type, rowlisteMap.get(i), output);
+                    }
+                    else {
+                        appendTo(type, value, output);
+                    }
+                }
+            }
+        }
+    }
+
     @Override
     public Page getNextPage()
     {
         verify(pageBuilder.isEmpty());
         count = 0;
         for (int i = 0; i < ROWS_PER_REQUEST; i++) {
-            if (batchIterator == null || !batchIterator.hasNext()) {
-                if (queryResponse.hasNext()) {
-                    this.batchIterator = queryResponse.next().iterator();
-                    batchIterator.hasNext();
-                }
-                else {
-                    finished = true;
-                    break;
-                }
+            if (!searchResult.hasNext()) {
+                finished = true;
+                break;
             }
-            Map<String, Object> sourceMap = batchIterator.next();
+            Map<String, Object> docMap = searchResult.next();
             count++;
 
             pageBuilder.declarePosition();
+            ImmutableList.Builder<ArrayDocForeachFunc> funcs = ImmutableList.builder();
             for (int column = 0; column < columnTypes.size(); column++) {
                 BlockBuilder output = pageBuilder.getBlockBuilder(column);
-                appendTo(columnTypes.get(column), sourceMap.get(columnNames.get(column)), output);
+                Type type = columnTypes.get(column);
+                Object value = docMap.get(columnNames.get(column));
+                //如果是 array[] 字段 则下面会进行打平处理 es head展示时则只显示了array第一个元素
+                if (isRowType(type) && value instanceof List && ((List) value).size() > 0 && ((List) value).get(0) instanceof Map) {
+                    final List<Map> listSourceMap = (List<Map>) value;
+                    appendTo(type, listSourceMap.get(0), output);
+                    //----下面是展平逻辑 目前存在如果有多个array字段 展平时笛卡尔积join问题---
+                    // 此处不做展平处理, 逻辑将和<es head `基本查询`>保持一致
+                    //funcs.add(new ArrayDocForeachFunc(column, docMap));
+                }
+                else {
+                    appendTo(type, value, output);
+                }
             }
+            funcs.build().forEach(func -> func.accept());
         }
 
         Page page = pageBuilder.build();
@@ -134,6 +173,7 @@ public class ElasticsearchPageSource
     public void close()
             throws IOException
     {
+        searchResult.close();
     }
 
     private void appendTo(Type type, Object value, BlockBuilder output)

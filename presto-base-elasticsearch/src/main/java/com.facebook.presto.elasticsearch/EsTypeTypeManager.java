@@ -1,0 +1,144 @@
+package com.facebook.presto.elasticsearch;
+
+import com.facebook.presto.elasticsearch.metadata.EsField;
+import com.facebook.presto.elasticsearch.metadata.UnsupportedEsField;
+import com.facebook.presto.spi.type.ArrayType;
+import com.facebook.presto.spi.type.MapType;
+import com.facebook.presto.spi.type.RowType;
+import com.facebook.presto.spi.type.StandardTypes;
+import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeManager;
+import com.facebook.presto.spi.type.TypeSignatureParameter;
+import com.facebook.presto.spi.type.VarcharType;
+import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
+import io.airlift.slice.Slice;
+
+import java.util.stream.Collectors;
+
+import static com.facebook.presto.spi.type.BigintType.BIGINT;
+import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
+import static com.facebook.presto.spi.type.DateType.DATE;
+import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
+import static com.facebook.presto.spi.type.IntegerType.INTEGER;
+import static com.facebook.presto.spi.type.RealType.REAL;
+import static com.facebook.presto.spi.type.SmallintType.SMALLINT;
+import static com.facebook.presto.spi.type.VarbinaryType.VARBINARY;
+import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
+import static java.util.Objects.requireNonNull;
+
+public class EsTypeTypeManager
+{
+    private final TypeManager typeManager;
+
+    @Inject
+    private EsTypeTypeManager(final TypeManager typeManager)
+    {
+        this.typeManager = requireNonNull(typeManager, "typeManager is null");
+    }
+
+    public Type toPrestoType(EsField esField)
+    {
+        return toPrestoType(new StringBuilder(), esField);
+    }
+
+    private Type toPrestoType(final StringBuilder lastFieldName, EsField esField)
+    {
+        lastFieldName.append(".").append(esField.getName());
+        final Type type;
+        switch (esField.getDataType()) {
+            case NULL:
+            case OBJECT:
+                if (esField.hasDocValues() && !esField.getProperties().isEmpty()) {
+                    type = RowType.from(esField.getProperties().values()
+                            .stream().map(x -> RowType.field(x.getName(), toPrestoType(lastFieldName, x)))
+                            .collect(Collectors.toList()));
+                    break;
+                }
+                throw new UnsupportedOperationException("this " + esField.getName() + " esType is OBJECT but not hasDoc have't support!");
+            case UNSUPPORTED: {
+                String stringType = ((UnsupportedEsField) esField).getOriginalType();
+                if ("string".equals(stringType) || "ip".equals(stringType)) {
+                    type = VARCHAR;
+                    break;
+                }
+                if ("geo_point".equals(stringType)) {  //地理位置类型 经纬度值
+                    type = mapType(VARCHAR, DOUBLE);
+                    break;
+                }
+                type = VARCHAR;
+                break;
+            }
+            case BOOLEAN:
+                type = BOOLEAN;
+                break;
+            case SHORT:
+                type = SMALLINT;
+                break;
+            case LONG:
+                type = BIGINT;
+                break;
+            case INTEGER:
+                type = INTEGER;
+                break;
+            case FLOAT:
+                type = REAL;
+                break;
+            case SCALED_FLOAT:
+            case HALF_FLOAT:
+            case DOUBLE:
+                type = DOUBLE;
+                break;
+            case TEXT:
+            case KEYWORD:
+                type = VARCHAR;
+                break;
+            case BINARY:
+                type = VARBINARY;
+                break;
+            case DATE:
+                type = DATE;
+                break;
+            default:
+                throw new UnsupportedOperationException("column " + esField.getName() + "esType " + esField.getDataType() + " have't support!");
+        }
+        if (ImmutableList.<String>of().contains(lastFieldName.substring(1))) {  //如果通过sess 设置了字段类型
+            return arrayType(type);
+        }
+
+        return type;
+    }
+
+    public MapType mapType(Type keyType, Type valueType)
+    {
+        return (MapType) typeManager.getParameterizedType(StandardTypes.MAP, ImmutableList.of(
+                TypeSignatureParameter.of(keyType.getTypeSignature()),
+                TypeSignatureParameter.of(valueType.getTypeSignature())));
+    }
+
+    public ArrayType arrayType(Type valueType)
+    {
+        return (ArrayType) typeManager.getParameterizedType(StandardTypes.ARRAY, ImmutableList.of(
+                TypeSignatureParameter.of(valueType.getTypeSignature())));
+    }
+
+    public static Object getTypeValue(Type type, Object value)
+    {
+        Object toEncode;
+        if (Types.isArrayType(type)) {
+            throw new UnsupportedOperationException("Unsupported type " + type);
+        }
+        else if (Types.isMapType(type)) {
+            throw new UnsupportedOperationException("Unsupported type " + type);
+        }
+        else if (type.equals(VARBINARY)) {
+            return ((Slice) value).getBytes();
+        }
+        else if (type instanceof VarcharType) {
+            return ((Slice) value).toStringUtf8();
+        }
+        else {
+            return value;
+        }
+    }
+}

@@ -6,7 +6,7 @@ import java.util.List;
 
 public class Strings
 {
-    private Strings(){}
+    private Strings() {}
 
     public static boolean hasText(String str)
     {
