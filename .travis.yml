@@ -1,5 +1,5 @@
 language: java
-language: minimal
+#language: minimal
 
 env:
   global:
@@ -10,14 +10,10 @@ sudo: required
 
 dist: trusty
 
-install: travis_wait 30 mvn install
 
 cache:
   directories:
     - $HOME/.m2/repository
-
-#services:
-#  - docker
 
 install:
   - mvn -v
