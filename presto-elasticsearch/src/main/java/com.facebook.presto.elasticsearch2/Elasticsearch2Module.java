@@ -6,6 +6,7 @@ import com.facebook.presto.spi.PrestoException;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.Module;
+import io.airlift.log.Logger;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
@@ -39,7 +40,7 @@ public class Elasticsearch2Module
     private static class ConnectionProvider
             implements Provider<Client>
     {
-        //private static final Logger LOG = Logger.get(ConnectionProvider.class);
+        private static final Logger LOG = Logger.get(ConnectionProvider.class);
         private final String clusterName;
         private final String hosts;
 
@@ -63,7 +64,7 @@ public class Elasticsearch2Module
                             new InetSocketTransportAddress(InetAddress.getByName(ip.split(":")[0]),
                                     Integer.parseInt(ip.split(":")[1])));
                 }
-                //LOG.info("Connection to instance %s at %s established, user %s");
+                LOG.info("Connection to instance %s at %s established, user %s");
                 return client;
             }
             catch (IOException e) {
