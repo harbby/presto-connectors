@@ -15,7 +15,7 @@ Presto-elasticsearch is a standard Maven project. Simply run the following comma
 
     ./mvn clean package -DskipTests
 
-##intall
+## intall
 
 es 2.x
 ```
@@ -42,12 +42,15 @@ elasticsearch.transport.hosts=localhost:9300
 ```
 look: Cannot be used simultaneously
 
-##SQL Usage
+## SQL Usage
+
 ```SELECT * FROM test1 WHERE age >30 AND city = 'world'```
 
 ```desc test1```
 
-##Beyond SQL
+
+## Beyond SQL
+
 * Search
 
 select * from test1 where  _name = match_query('Lucy')
@@ -58,7 +61,7 @@ select * from test1 where  _name = match_phrase('Lucy')
 
 select * from test1 where _dsl = '{"query":{"match":{"city":{"query":"world"}}}}' and _name = match_query('Lucy')
 
-###pushDown
+### pushDown
 
 + _ field is an extension field
 Use the _ field and it will be pushed down to es for search
@@ -72,10 +75,11 @@ Use the _ field and it will be pushed down to es for search
 | es6.optimize_split_shards_enabled       | true           | boolean | Set to true to split non-indexed queries by shards splits. Should generally be
 | es6.scroll_search_batch_size            | 100            | integer | max of 100 hits will be returned for each scroll. Default 100                 
 | es6.scroll_search_timeout               | 60000          | bigint  | If set, will enable scrolling of the search request for the specified timeout
-demo:
-```set session es6.scroll_search_batch_size=150```
 
-##Does not support features
+
+demo:```set session es6.scroll_search_batch_size=150```
+
+## Does not support features
 + insert into(Waiting for development)
 + create es table
 + update
