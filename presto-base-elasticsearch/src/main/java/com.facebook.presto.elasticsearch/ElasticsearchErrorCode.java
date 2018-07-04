@@ -26,7 +26,7 @@ public enum ElasticsearchErrorCode
 
     ES_DSL_ERROR(6, USER_ERROR),
 
-    ES_MAPPING_EXISTS(7, EXTERNAL);
+    ES_MAPPING_ERROR(7, EXTERNAL);
 
     private final ErrorCode errorCode;
 

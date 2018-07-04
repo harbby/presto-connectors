@@ -6,6 +6,7 @@ import com.facebook.presto.elasticsearch.ElasticsearchTable;
 import com.facebook.presto.elasticsearch.EsTypeTypeManager;
 import com.facebook.presto.elasticsearch.conf.ElasticsearchConfig;
 import com.facebook.presto.elasticsearch.conf.ElasticsearchSessionProperties;
+import com.facebook.presto.elasticsearch.io.Document;
 import com.facebook.presto.elasticsearch.io.SearchResult;
 import com.facebook.presto.elasticsearch.metadata.EsField;
 import com.facebook.presto.elasticsearch.metadata.EsIndex;
@@ -18,7 +19,9 @@ import com.facebook.presto.elasticsearch.model.ElasticsearchTableHandle;
 import com.facebook.presto.elasticsearch.model.ElasticsearchTableLayoutHandle;
 import com.facebook.presto.elasticsearch5.functions.MatchQueryFunction;
 import com.facebook.presto.spi.ColumnHandle;
+import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorSession;
+import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.TableNotFoundException;
@@ -26,7 +29,19 @@ import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.predicate.Domain;
 import com.facebook.presto.spi.predicate.Range;
 import com.facebook.presto.spi.predicate.TupleDomain;
+import com.facebook.presto.spi.type.BigintType;
+import com.facebook.presto.spi.type.BooleanType;
+import com.facebook.presto.spi.type.DateType;
+import com.facebook.presto.spi.type.DecimalType;
+import com.facebook.presto.spi.type.DoubleType;
+import com.facebook.presto.spi.type.IntegerType;
+import com.facebook.presto.spi.type.SmallintType;
+import com.facebook.presto.spi.type.TimeType;
+import com.facebook.presto.spi.type.TimestampType;
+import com.facebook.presto.spi.type.TimestampWithTimeZoneType;
+import com.facebook.presto.spi.type.TinyintType;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.VarbinaryType;
 import com.facebook.presto.spi.type.VarcharType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,12 +51,15 @@ import com.google.common.collect.ImmutableSet;
 import io.airlift.slice.Slice;
 import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsGroup;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
+import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
@@ -51,6 +69,8 @@ import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -75,15 +95,20 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.ES_DSL_ERROR;
+import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.ES_MAPPING_ERROR;
 import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.IO_ERROR;
-import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.UNEXPECTED_ES_ERROR;
+import static com.facebook.presto.elasticsearch.Types.isArrayType;
+import static com.facebook.presto.elasticsearch.Types.isMapType;
+import static com.facebook.presto.elasticsearch.Types.isRowType;
+import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.facebook.presto.spi.connector.ConnectorSplitManager.SplitSchedulingStrategy.GROUPED_SCHEDULING;
+import static com.facebook.presto.spi.type.Varchars.isVarcharType;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 public class Elasticsearch5Client
         implements BaseClient
@@ -369,26 +394,21 @@ public class Elasticsearch5Client
     {
         String indexWildcard = tableName.getTableName();
         GetIndexRequest getIndexRequest = createGetIndexRequest(indexWildcard);
-
+        //----es scher error --
+        Thread.currentThread().setName("getTable_001");
+        GetIndexResponse response = client.admin().indices()
+                .getIndex(getIndexRequest).actionGet();
+        if (response.getIndices() == null || response.getIndices().length == 0) {
+            return null;
+        }
         //TODO: es中运行index名访问时可以使用*进行匹配,所以可能会返回多个index的mapping, 因此下面需要进行mapping merge  test table = test1"*"
-        ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetaData>> mappings;
-        try {
-            mappings = client.admin().indices()
-                    .getIndex(getIndexRequest).actionGet().getMappings();
-        }
-        catch (NoNodeAvailableException e) {
-            throw new PrestoException(IO_ERROR, e);
-        }
-        catch (Exception e) {
-            throw new PrestoException(UNEXPECTED_ES_ERROR, e);
-        }
+        ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetaData>> mappings = response.getMappings();
 
         List<IndexResolution> resolutions;
         if (mappings.size() > 0) {
             resolutions = new ArrayList<>(mappings.size());
             for (ObjectObjectCursor<String, ImmutableOpenMap<String, MappingMetaData>> indexMappings : mappings) {
-                String concreteIndex = indexMappings.key;
-                resolutions.add(buildGetIndexResult(concreteIndex, concreteIndex, indexMappings.value));
+                resolutions.add(buildGetIndexResult(indexMappings.key, indexMappings.value));
             }
         }
         else {
@@ -399,7 +419,140 @@ public class Elasticsearch5Client
         return new ElasticsearchTable(typeManager, tableName.getSchemaName(), tableName.getTableName(), indexWithMerged.get());
     }
 
-    private static IndexResolution buildGetIndexResult(String concreteIndex, String indexOrAlias,
+    @Override
+    public void insertMany(List<Document> docs)
+    {
+        final BulkRequestBuilder bulkRequestBuilder = client.prepareBulk();
+        for (Document doc : docs) {
+            bulkRequestBuilder.add(new IndexRequest()
+                    .index(doc.getIndex())
+                    .type(doc.getType())
+                    .id(doc.getId())
+                    .source(doc.getSource()));
+        }
+        BulkResponse response = bulkRequestBuilder.execute().actionGet();
+        if (response.hasFailures()) {
+            throw new PrestoException(IO_ERROR, response.buildFailureMessage());
+        }
+    }
+
+    @Override
+    public boolean existsTable(SchemaTableName schemaTableName)
+    {
+        return client.admin().indices().prepareExists(schemaTableName.getTableName())
+                .execute().actionGet().isExists();
+    }
+
+    @Override
+    public void dropTable(SchemaTableName schemaTableName)
+    {
+        client.admin().indices().prepareDelete(schemaTableName.getTableName()).execute().actionGet();
+    }
+
+    @Override
+    public void createTable(ConnectorTableMetadata tableMetadata)
+    {
+        XContentBuilder mapping = getMapping(tableMetadata.getColumns());
+        String index = tableMetadata.getTable().getTableName();
+        try {
+            //TODO: default type value is presto
+            client.admin().indices().prepareCreate(index)
+                    .addMapping("presto", mapping)
+                    .execute().actionGet();
+        }
+        catch (MapperParsingException e) {
+            throw new PrestoException(ES_MAPPING_ERROR, "Failed create index:" + index, e);
+        }
+    }
+
+    private XContentBuilder getMapping(List<ColumnMetadata> columns)
+    {
+        XContentBuilder mapping = null;
+        try {
+            mapping = jsonBuilder()
+                    .startObject().startObject("properties");
+            for (ColumnMetadata columnMetadata : columns) {
+                String columnName = columnMetadata.getName();
+                Type type = columnMetadata.getType();
+                if ("@timestamp".equals(columnName)) {    //break @timestamp field
+                    continue;
+                }
+                mapping.startObject(columnName)
+                        .field("type", getEsType(type))
+                        //.field("index", "not_analyzed")
+                        .endObject();
+            }
+            mapping.endObject().endObject();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return mapping;
+    }
+
+    private static String getEsType(Type type)
+    {
+        //Type mapping
+        // see:https://www.elastic.co/guide/en/elasticsearch/reference/6.3/mapping-types.html
+        if (type.equals(BooleanType.BOOLEAN)) {
+            return "boolean";
+        }
+        if (type.equals(BigintType.BIGINT)) {
+            return "long";
+        }
+        if (type.equals(IntegerType.INTEGER)) {
+            return "integer";
+        }
+        if (type.equals(SmallintType.SMALLINT)) {
+            return "short";
+        }
+        if (type.equals(TinyintType.TINYINT)) {
+            return "byte";
+        }
+        if (type.equals(DoubleType.DOUBLE)) {
+            return "double";
+        }
+        if (isVarcharType(type)) {
+            //TODO: text or keyword ?
+            return "text";
+        }
+        if (type.equals(VarbinaryType.VARBINARY)) {
+            return "binary";
+        }
+        if (type.equals(DateType.DATE)) {
+            return "date";
+        }
+        if (type.equals(TimeType.TIME)) {
+            return "date";
+        }
+        if (type.equals(TimestampType.TIMESTAMP)) {
+            return "date";
+        }
+        if (type.equals(TimestampWithTimeZoneType.TIMESTAMP_WITH_TIME_ZONE)) {
+            //TODO: TIMESTAMP_WITH_TIME_ZONE
+            return "date";
+        }
+        if (type instanceof DecimalType) {
+            return "double";
+        }
+        if (isArrayType(type)) {
+            Type elementType = type.getTypeParameters().get(0);
+            if (isArrayType(elementType) || isMapType(elementType) || isRowType(elementType)) {
+                throw new PrestoException(NOT_SUPPORTED, "sorry unsupported type: " + type);
+            }
+            return getEsType(elementType);
+        }
+        if (isMapType(type)) {
+            throw new PrestoException(NOT_SUPPORTED, "sorry unsupported type: " + type);
+        }
+        if (isRowType(type)) {
+            throw new PrestoException(NOT_SUPPORTED, "sorry unsupported type: " + type);
+        }
+
+        throw new PrestoException(NOT_SUPPORTED, "unsupported type: " + type);
+    }
+
+    private static IndexResolution buildGetIndexResult(String indexOrAlias,
             ImmutableOpenMap<String, MappingMetaData> mappings)
     {
         // Make sure that the index contains only a single type
@@ -426,28 +579,9 @@ public class Elasticsearch5Client
         }
         else if (typeNames != null) {
             Collections.sort(typeNames);
-            //TODO: 如下注释为不支持多type--
-//            return IndexResolution.invalid(
-//                    "[" + indexOrAlias + "] contains more than one type " + typeNames + " so it is incompatible with sql");
-            Map<String, EsField> mergeTypeMapping = Stream.of(mappings.values().toArray(MappingMetaData.class))
-                    .map(x -> {
-                        try {
-                            return Types.fromEs(x.sourceAsMap());
-                        }
-                        catch (IOException e) {
-                            throw new MappingException("sourceAsMap error", e);
-                        }
-                    }).flatMap(x -> x.values().stream())
-                    .collect(Collectors.toMap(EsField::getName, v -> v, (x, y) -> {
-                        if (x.hasDocValues() && y.hasDocValues()) {
-                            Map<String, EsField> fieldMap = ImmutableList.<EsField>builder().addAll(x.getProperties().values())
-                                    .addAll(y.getProperties().values()).build().stream()
-                                    .collect(Collectors.toMap(EsField::getName, v1 -> v1, (v3, v4) -> v4));
-                            return new EsField(x.getName(), x.getDataType(), fieldMap, true);
-                        }
-                        return y;
-                    }));
-            return IndexResolution.valid(new EsIndex(indexOrAlias, mergeTypeMapping));
+            //es5 不支持多type--
+            return IndexResolution.invalid(
+                    "[" + indexOrAlias + "] contains more than one type " + typeNames + " so it is incompatible with sql");
         }
         else {
             try {

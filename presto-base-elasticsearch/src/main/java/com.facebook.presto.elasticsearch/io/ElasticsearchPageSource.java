@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.ES_MAPPING_EXISTS;
+import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.UNEXPECTED_ES_ERROR;
 import static com.facebook.presto.elasticsearch.Types.isArrayType;
 import static com.facebook.presto.elasticsearch.Types.isMapType;
 import static com.facebook.presto.elasticsearch.Types.isRowType;
@@ -238,7 +238,7 @@ public class ElasticsearchPageSource
                 return MAPPER.writeValueAsString(value);
             }
             catch (JsonProcessingException e) {
-                throw new PrestoException(ES_MAPPING_EXISTS, e);
+                throw new PrestoException(UNEXPECTED_ES_ERROR, e);
             }
         }
         return String.valueOf(value);

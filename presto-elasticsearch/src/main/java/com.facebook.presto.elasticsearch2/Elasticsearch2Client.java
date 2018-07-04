@@ -6,6 +6,7 @@ import com.facebook.presto.elasticsearch.ElasticsearchTable;
 import com.facebook.presto.elasticsearch.EsTypeTypeManager;
 import com.facebook.presto.elasticsearch.conf.ElasticsearchConfig;
 import com.facebook.presto.elasticsearch.conf.ElasticsearchSessionProperties;
+import com.facebook.presto.elasticsearch.io.Document;
 import com.facebook.presto.elasticsearch.io.SearchResult;
 import com.facebook.presto.elasticsearch.metadata.EsField;
 import com.facebook.presto.elasticsearch.metadata.EsIndex;
@@ -19,6 +20,7 @@ import com.facebook.presto.elasticsearch.model.ElasticsearchTableLayoutHandle;
 import com.facebook.presto.elasticsearch2.functions.MatchQueryFunction;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorSession;
+import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.TableNotFoundException;
@@ -36,13 +38,16 @@ import com.google.common.collect.ImmutableSet;
 import io.airlift.slice.Slice;
 import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsGroup;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
+import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
@@ -77,7 +82,6 @@ import java.util.stream.Collectors;
 
 import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.ES_DSL_ERROR;
 import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.IO_ERROR;
-import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.UNEXPECTED_ES_ERROR;
 import static com.facebook.presto.spi.connector.ConnectorSplitManager.SplitSchedulingStrategy.GROUPED_SCHEDULING;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Collections.emptyList;
@@ -365,26 +369,21 @@ public final class Elasticsearch2Client
     {
         String indexWildcard = tableName.getTableName();
         GetIndexRequest getIndexRequest = createGetIndexRequest(indexWildcard);
-
+        //----es scher error --
+        Thread.currentThread().setName("getTable_001");
+        GetIndexResponse response = client.admin().indices()
+                .getIndex(getIndexRequest).actionGet();
+        if (response.getIndices() == null || response.getIndices().length == 0) {
+            return null;
+        }
         //TODO: es中运行index名访问时可以使用*进行匹配,所以可能会返回多个index的mapping, 因此下面需要进行mapping merge  test table = test1"*"
-        ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetaData>> mappings;
-        try {
-            mappings = client.admin().indices()
-                    .getIndex(getIndexRequest).actionGet().getMappings();
-        }
-        catch (NoNodeAvailableException e) {
-            throw new PrestoException(IO_ERROR, e);
-        }
-        catch (Exception e) {
-            throw new PrestoException(UNEXPECTED_ES_ERROR, e);
-        }
+        ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetaData>> mappings = response.getMappings();
 
         List<IndexResolution> resolutions;
         if (mappings.size() > 0) {
             resolutions = new ArrayList<>(mappings.size());
             for (ObjectObjectCursor<String, ImmutableOpenMap<String, MappingMetaData>> indexMappings : mappings) {
-                String concreteIndex = indexMappings.key;
-                resolutions.add(buildGetIndexResult(concreteIndex, concreteIndex, indexMappings.value));
+                resolutions.add(buildGetIndexResult(indexMappings.key, indexMappings.value));
             }
         }
         else {
@@ -395,7 +394,43 @@ public final class Elasticsearch2Client
         return new ElasticsearchTable(typeManager, tableName.getSchemaName(), tableName.getTableName(), indexWithMerged.get());
     }
 
-    private static IndexResolution buildGetIndexResult(String concreteIndex, String indexOrAlias,
+    @Override
+    public void insertMany(List<Document> docs)
+    {
+        final BulkRequestBuilder bulkRequestBuilder = client.prepareBulk();
+        for (Document doc : docs) {
+            bulkRequestBuilder.add(new IndexRequest()
+                    .index(doc.getIndex())
+                    .type(doc.getType())
+                    .id(doc.getId())
+                    .source(doc.getSource()));
+        }
+        BulkResponse response = bulkRequestBuilder.get();
+        if (response.hasFailures()) {
+            throw new PrestoException(IO_ERROR, response.buildFailureMessage());
+        }
+    }
+
+    @Override
+    public boolean existsTable(SchemaTableName schemaTableName)
+    {
+        return client.admin().indices().prepareExists(schemaTableName.getTableName())
+                .execute().actionGet().isExists();
+    }
+
+    @Override
+    public void dropTable(SchemaTableName schemaTableName)
+    {
+        client.admin().indices().prepareDelete(schemaTableName.getTableName()).execute().actionGet();
+    }
+
+    @Override
+    public void createTable(ConnectorTableMetadata tableMetadata)
+    {
+        throw new UnsupportedOperationException("this method have't support!");
+    }
+
+    private static IndexResolution buildGetIndexResult(String indexOrAlias,
             ImmutableOpenMap<String, MappingMetaData> mappings)
     {
         // Make sure that the index contains only a single type
