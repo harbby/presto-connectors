@@ -55,6 +55,8 @@ look: Cannot be used simultaneously
 
 select * from test1 where  _name = match_query('Lucy')
 
+* Search match_phrase
+
 select * from test1 where  _name = match_phrase('Lucy')
 
 * Strong pushDown
@@ -62,7 +64,6 @@ select * from test1 where  _name = match_phrase('Lucy')
 select * from test1 where _dsl = '{"query":{"match":{"city":{"query":"world"}}}}' and _name = match_query('Lucy')
 
 ### pushDown
-
 + _ field is an extension field
 Use the _ field and it will be pushed down to es for search
 
