@@ -1,6 +1,7 @@
 package com.facebook.presto.elasticsearch;
 
 import com.facebook.presto.elasticsearch.model.ElasticsearchColumnHandle;
+import com.facebook.presto.elasticsearch.model.ElasticsearchOutputTableHandle;
 import com.facebook.presto.elasticsearch.model.ElasticsearchTableHandle;
 import com.facebook.presto.elasticsearch.model.ElasticsearchTableLayoutHandle;
 import com.facebook.presto.spi.ColumnHandle;
@@ -218,10 +219,19 @@ public class ElasticsearchMetadata
         SchemaTableName tableName = tableMetadata.getTable();
         client.createTable(tableMetadata);
 
-        ElasticsearchTableHandle handle = new ElasticsearchTableHandle(
+        //--- es column is sort ----
+        List<ElasticsearchColumnHandle> columns = tableMetadata.getColumns().stream()
+                .map(columnMetadata -> new ElasticsearchColumnHandle(
+                        columnMetadata.getName(),
+                        columnMetadata.getType(),
+                        columnMetadata.getComment(),
+                        true,
+                        columnMetadata.isHidden())).collect(Collectors.toList());
+        ElasticsearchOutputTableHandle handle = new ElasticsearchOutputTableHandle(
                 connectorId,
                 tableName.getSchemaName(),
-                tableName.getTableName());
+                tableName.getTableName(),
+                columns);
 
         setRollback(() -> client.dropTable(tableMetadata.getTable()));  //回滚操作
 

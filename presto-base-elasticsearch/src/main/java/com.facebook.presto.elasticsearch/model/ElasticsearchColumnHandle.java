@@ -32,7 +32,7 @@ public class ElasticsearchColumnHandle
         this.name = requireNonNull(name, "columnName is null");
         this.type = requireNonNull(type, "type is null");
 
-        this.comment = requireNonNull(comment, "comment is null");
+        this.comment = comment; //requireNonNull(comment, "comment is null");
         this.keyword = keyword;
         this.hidden = hidden;
     }

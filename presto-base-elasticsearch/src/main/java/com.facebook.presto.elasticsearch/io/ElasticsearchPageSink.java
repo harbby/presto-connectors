@@ -1,12 +1,11 @@
 package com.facebook.presto.elasticsearch.io;
 
 import com.facebook.presto.elasticsearch.BaseClient;
-import com.facebook.presto.elasticsearch.ElasticsearchTable;
 import com.facebook.presto.elasticsearch.model.ElasticsearchColumnHandle;
-import com.facebook.presto.elasticsearch.model.ElasticsearchTableHandle;
 import com.facebook.presto.spi.ConnectorPageSink;
 import com.facebook.presto.spi.Page;
 import com.facebook.presto.spi.PrestoException;
+import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.StandardErrorCode;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.BigintType;
@@ -36,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.facebook.presto.elasticsearch.Types.isArrayType;
 import static com.facebook.presto.elasticsearch.Types.isMapType;
@@ -53,17 +51,17 @@ public class ElasticsearchPageSink
         implements ConnectorPageSink
 {
     private final List<ElasticsearchColumnHandle> columns;
-    private final ElasticsearchTableHandle tableHandle;
+    private final SchemaTableName schemaTableName;
     private final BaseClient client;
 
     public ElasticsearchPageSink(
             BaseClient client,
-            ElasticsearchTableHandle tableHandle)
+            SchemaTableName schemaTableName,
+            List<ElasticsearchColumnHandle> columns)
     {
         this.client = requireNonNull(client, "client is null");
-        this.tableHandle = requireNonNull(tableHandle, "tableHandle is null");
-        ElasticsearchTable elasticsearchTable = client.getTable(tableHandle.getSchemaTableName());
-        this.columns = elasticsearchTable.getColumns().stream().filter(x -> !x.isHidden()).collect(Collectors.toList());
+        this.schemaTableName = requireNonNull(schemaTableName, "schemaTableName is null");
+        this.columns = requireNonNull(columns, "columns is null");
     }
 
     @Override
@@ -72,7 +70,7 @@ public class ElasticsearchPageSink
         List<Document> batch = new ArrayList<>(page.getPositionCount());
 
         for (int position = 0; position < page.getPositionCount(); position++) {
-            Document.DocumentBuilder builder = Document.newDocument().setIndex(tableHandle.getTableName());
+            Document.DocumentBuilder builder = Document.newDocument().setIndex(schemaTableName.getTableName());
             Map<String, Object> source = new HashMap<>();
             for (int channel = 0; channel < page.getChannelCount(); channel++) {
                 ElasticsearchColumnHandle column = columns.get(channel);

@@ -1,6 +1,7 @@
 package com.facebook.presto.elasticsearch;
 
 import com.facebook.presto.elasticsearch.model.ElasticsearchColumnHandle;
+import com.facebook.presto.elasticsearch.model.ElasticsearchOutputTableHandle;
 import com.facebook.presto.elasticsearch.model.ElasticsearchSplit;
 import com.facebook.presto.elasticsearch.model.ElasticsearchTableHandle;
 import com.facebook.presto.elasticsearch.model.ElasticsearchTableLayoutHandle;
@@ -40,7 +41,7 @@ public class ElasticsearchHandleResolver
     @Override
     public Class<? extends ConnectorOutputTableHandle> getOutputTableHandleClass()
     {
-        return ElasticsearchTableHandle.class;
+        return ElasticsearchOutputTableHandle.class;
     }
 
     @Override
