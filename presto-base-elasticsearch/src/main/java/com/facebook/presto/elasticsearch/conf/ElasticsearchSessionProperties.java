@@ -92,6 +92,9 @@ public final class ElasticsearchSessionProperties
         return session.getProperty(INDEX_ROWS_PER_SPLIT, Integer.class);
     }
 
+    /**
+     * @return get Scroll Timeout
+     * */
     public static long getScrollSearchTimeout(ConnectorSession session)
     {
         return session.getProperty(SCROLL_SEARCH_TIMEOUT, Long.class);
