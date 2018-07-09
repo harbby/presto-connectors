@@ -6,12 +6,20 @@
     <parent>
         <artifactId>presto-root</artifactId>
         <groupId>com.facebook.presto</groupId>
-        <version>0.203</version>
+        <version>0.205</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>presto-runners</artifactId>
     <packaging>pom</packaging>
+
+    <licenses>
+        <license>
+            <name>Apache License 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <properties>
         <air.check.skip-license>true</air.check.skip-license>
@@ -22,10 +30,10 @@
         <module>presto-elasticsearch</module>
         <module>presto-elasticsearch5</module>
         <module>presto-elasticsearch6</module>
+        <!--<module>elasticsearch-apache2</module>-->
         <module>presto-kudu</module>
         <!--<module>presto-hbase</module>-->
         <!--<module>hbase-apache2</module>-->
-        <module>elasticsearch-apache2</module>
     </modules>
 
 </project>

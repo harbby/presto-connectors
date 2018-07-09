@@ -81,7 +81,9 @@ Use the _ field and it will be pushed down to es for search
 demo:```set session es6.scroll_search_batch_size=150```
 
 ## Does not support features
-+ insert into(Waiting for development)
-+ create es table
++ insert into(Already supported)
++ create table as (Already supported)
++ create table (Already supported)
++ drop table(Already supported)
 + update
 + delete

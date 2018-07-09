@@ -27,12 +27,12 @@ import static com.facebook.presto.spi.type.VarbinaryType.VARBINARY;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static java.util.Objects.requireNonNull;
 
-public class EsTypeTypeManager
+public class EsTypeManager
 {
     private final TypeManager typeManager;
 
     @Inject
-    private EsTypeTypeManager(final TypeManager typeManager)
+    private EsTypeManager(final TypeManager typeManager)
     {
         this.typeManager = requireNonNull(typeManager, "typeManager is null");
     }

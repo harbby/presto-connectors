@@ -3,7 +3,7 @@ package com.facebook.presto.elasticsearch6;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.facebook.presto.elasticsearch.BaseClient;
 import com.facebook.presto.elasticsearch.ElasticsearchTable;
-import com.facebook.presto.elasticsearch.EsTypeTypeManager;
+import com.facebook.presto.elasticsearch.EsTypeManager;
 import com.facebook.presto.elasticsearch.conf.ElasticsearchConfig;
 import com.facebook.presto.elasticsearch.conf.ElasticsearchSessionProperties;
 import com.facebook.presto.elasticsearch.io.Document;
@@ -115,11 +115,11 @@ public class Elasticsearch6Client
 {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final Client client;
-    private EsTypeTypeManager typeManager;
+    private EsTypeManager typeManager;
 
     @javax.inject.Inject
     public Elasticsearch6Client(
-            EsTypeTypeManager typeManager,
+            EsTypeManager typeManager,
             Client client,
             ElasticsearchConfig elasticsearchConfig)
     {
@@ -286,24 +286,24 @@ public class Elasticsearch6Client
         else if (prestoRange.isSingleValue()) {
             //直接get即可
             Object value = prestoRange.getSingleValue();
-            qb.must(QueryBuilders.termQuery(columnName, EsTypeTypeManager.getTypeValue(type, value)));
+            qb.must(QueryBuilders.termQuery(columnName, EsTypeManager.getTypeValue(type, value)));
         }
         else {
             if (prestoRange.getHigh().isUpperUnbounded()) {
                 // If high is unbounded, then create a range from (value, +inf), checking inclusivity
                 Object value = prestoRange.getLow().getValue();
-                qb.must(QueryBuilders.rangeQuery(columnName).gte(EsTypeTypeManager.getTypeValue(type, value)));
+                qb.must(QueryBuilders.rangeQuery(columnName).gte(EsTypeManager.getTypeValue(type, value)));
             }
             else if (prestoRange.getLow().isLowerUnbounded()) {
                 // If low is unbounded, then create a range from (-inf, value), checking inclusivity
                 Object value = prestoRange.getHigh().getValue();
-                qb.must(QueryBuilders.rangeQuery(columnName).lte(EsTypeTypeManager.getTypeValue(type, value)));
+                qb.must(QueryBuilders.rangeQuery(columnName).lte(EsTypeManager.getTypeValue(type, value)));
             }
             else {
                 // If high is unbounded, then create a range from low to high, checking inclusivity
                 //Type type = prestoRange.getType();
-                Object startSplit = EsTypeTypeManager.getTypeValue(type, prestoRange.getLow().getValue());
-                Object endSplit = EsTypeTypeManager.getTypeValue(type, prestoRange.getHigh().getValue());
+                Object startSplit = EsTypeManager.getTypeValue(type, prestoRange.getLow().getValue());
+                Object endSplit = EsTypeManager.getTypeValue(type, prestoRange.getHigh().getValue());
                 //------- set start and stop -----
                 qb.must(QueryBuilders.rangeQuery(columnName).gte(startSplit).lte(endSplit));
             }
@@ -465,7 +465,7 @@ public class Elasticsearch6Client
         }
     }
 
-    private XContentBuilder getMapping(List<ColumnMetadata> columns)
+    private static XContentBuilder getMapping(List<ColumnMetadata> columns)
     {
         XContentBuilder mapping = null;
         try {

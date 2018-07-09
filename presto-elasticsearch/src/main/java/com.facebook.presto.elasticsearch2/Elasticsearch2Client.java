@@ -3,7 +3,7 @@ package com.facebook.presto.elasticsearch2;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.facebook.presto.elasticsearch.BaseClient;
 import com.facebook.presto.elasticsearch.ElasticsearchTable;
-import com.facebook.presto.elasticsearch.EsTypeTypeManager;
+import com.facebook.presto.elasticsearch.EsTypeManager;
 import com.facebook.presto.elasticsearch.conf.ElasticsearchConfig;
 import com.facebook.presto.elasticsearch.conf.ElasticsearchSessionProperties;
 import com.facebook.presto.elasticsearch.io.Document;
@@ -19,6 +19,7 @@ import com.facebook.presto.elasticsearch.model.ElasticsearchTableHandle;
 import com.facebook.presto.elasticsearch.model.ElasticsearchTableLayoutHandle;
 import com.facebook.presto.elasticsearch2.functions.MatchQueryFunction;
 import com.facebook.presto.spi.ColumnHandle;
+import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.PrestoException;
@@ -28,7 +29,19 @@ import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.predicate.Domain;
 import com.facebook.presto.spi.predicate.Range;
 import com.facebook.presto.spi.predicate.TupleDomain;
+import com.facebook.presto.spi.type.BigintType;
+import com.facebook.presto.spi.type.BooleanType;
+import com.facebook.presto.spi.type.DateType;
+import com.facebook.presto.spi.type.DecimalType;
+import com.facebook.presto.spi.type.DoubleType;
+import com.facebook.presto.spi.type.IntegerType;
+import com.facebook.presto.spi.type.SmallintType;
+import com.facebook.presto.spi.type.TimeType;
+import com.facebook.presto.spi.type.TimestampType;
+import com.facebook.presto.spi.type.TimestampWithTimeZoneType;
+import com.facebook.presto.spi.type.TinyintType;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.VarbinaryType;
 import com.facebook.presto.spi.type.VarcharType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -56,6 +69,8 @@ import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -81,22 +96,29 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.ES_DSL_ERROR;
+import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.ES_MAPPING_ERROR;
 import static com.facebook.presto.elasticsearch.ElasticsearchErrorCode.IO_ERROR;
+import static com.facebook.presto.elasticsearch.Types.isArrayType;
+import static com.facebook.presto.elasticsearch.Types.isMapType;
+import static com.facebook.presto.elasticsearch.Types.isRowType;
+import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.facebook.presto.spi.connector.ConnectorSplitManager.SplitSchedulingStrategy.GROUPED_SCHEDULING;
+import static com.facebook.presto.spi.type.Varchars.isVarcharType;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 public final class Elasticsearch2Client
         implements BaseClient
 {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final Client client;
-    private EsTypeTypeManager typeManager;
+    private EsTypeManager typeManager;
 
     @Inject
     public Elasticsearch2Client(
-            EsTypeTypeManager typeManager,
+            EsTypeManager typeManager,
             Client client,
             ElasticsearchConfig elasticsearchConfig)
     {
@@ -250,24 +272,24 @@ public final class Elasticsearch2Client
         else if (prestoRange.isSingleValue()) {
             //直接get即可
             Object value = prestoRange.getSingleValue();
-            qb.must(QueryBuilders.termQuery(columnName, EsTypeTypeManager.getTypeValue(type, value)));
+            qb.must(QueryBuilders.termQuery(columnName, EsTypeManager.getTypeValue(type, value)));
         }
         else {
             if (prestoRange.getHigh().isUpperUnbounded()) {
                 // If high is unbounded, then create a range from (value, +inf), checking inclusivity
                 Object value = prestoRange.getLow().getValue();
-                qb.must(QueryBuilders.rangeQuery(columnName).gte(EsTypeTypeManager.getTypeValue(type, value)));
+                qb.must(QueryBuilders.rangeQuery(columnName).gte(EsTypeManager.getTypeValue(type, value)));
             }
             else if (prestoRange.getLow().isLowerUnbounded()) {
                 // If low is unbounded, then create a range from (-inf, value), checking inclusivity
                 Object value = prestoRange.getHigh().getValue();
-                qb.must(QueryBuilders.rangeQuery(columnName).lte(EsTypeTypeManager.getTypeValue(type, value)));
+                qb.must(QueryBuilders.rangeQuery(columnName).lte(EsTypeManager.getTypeValue(type, value)));
             }
             else {
                 // If high is unbounded, then create a range from low to high, checking inclusivity
                 //Type type = prestoRange.getType();
-                Object startSplit = EsTypeTypeManager.getTypeValue(type, prestoRange.getLow().getValue());
-                Object endSplit = EsTypeTypeManager.getTypeValue(type, prestoRange.getHigh().getValue());
+                Object startSplit = EsTypeManager.getTypeValue(type, prestoRange.getLow().getValue());
+                Object endSplit = EsTypeManager.getTypeValue(type, prestoRange.getHigh().getValue());
                 //------- set start and stop -----
                 qb.must(QueryBuilders.rangeQuery(columnName).gte(startSplit).lte(endSplit));
             }
@@ -337,7 +359,6 @@ public final class Elasticsearch2Client
             @Override
             public boolean hasNext()
             {
-                batchHitIterator.remove();
                 if (batchHitIterator != null && batchHitIterator.hasNext()) {
                     return true;
                 }
@@ -427,7 +448,104 @@ public final class Elasticsearch2Client
     @Override
     public void createTable(ConnectorTableMetadata tableMetadata)
     {
-        throw new UnsupportedOperationException("this method have't support!");
+        XContentBuilder mapping = getMapping(tableMetadata.getColumns());
+        String index = tableMetadata.getTable().getTableName();
+        try {
+            //TODO: default type value is presto
+            client.admin().indices().prepareCreate(index)
+                    .addMapping("presto", mapping)
+                    .execute().actionGet();
+        }
+        catch (MapperParsingException e) {
+            throw new PrestoException(ES_MAPPING_ERROR, "Failed create index:" + index, e);
+        }
+    }
+
+    private static XContentBuilder getMapping(List<ColumnMetadata> columns)
+    {
+        XContentBuilder mapping = null;
+        try {
+            mapping = jsonBuilder()
+                    .startObject().startObject("properties");
+            for (ColumnMetadata columnMetadata : columns) {
+                String columnName = columnMetadata.getName();
+                Type type = columnMetadata.getType();
+                if ("@timestamp".equals(columnName)) {    //break @timestamp field
+                    continue;
+                }
+                mapping.startObject(columnName)
+                        .field("type", getEsType(type))
+                        //.field("index", "not_analyzed")
+                        .endObject();
+            }
+            mapping.endObject().endObject();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return mapping;
+    }
+
+    private static String getEsType(Type type)
+    {
+        //Type mapping
+        // see:https://www.elastic.co/guide/en/elasticsearch/reference/6.3/mapping-types.html
+        if (type.equals(BooleanType.BOOLEAN)) {
+            return "boolean";
+        }
+        if (type.equals(BigintType.BIGINT)) {
+            return "long";
+        }
+        if (type.equals(IntegerType.INTEGER)) {
+            return "integer";
+        }
+        if (type.equals(SmallintType.SMALLINT)) {
+            return "short";
+        }
+        if (type.equals(TinyintType.TINYINT)) {
+            return "byte";
+        }
+        if (type.equals(DoubleType.DOUBLE)) {
+            return "double";
+        }
+        if (isVarcharType(type)) {
+            //es 2.4.x
+            return "string";
+        }
+        if (type.equals(VarbinaryType.VARBINARY)) {
+            return "binary";
+        }
+        if (type.equals(DateType.DATE)) {
+            return "date";
+        }
+        if (type.equals(TimeType.TIME)) {
+            return "date";
+        }
+        if (type.equals(TimestampType.TIMESTAMP)) {
+            return "date";
+        }
+        if (type.equals(TimestampWithTimeZoneType.TIMESTAMP_WITH_TIME_ZONE)) {
+            //TODO: TIMESTAMP_WITH_TIME_ZONE
+            return "date";
+        }
+        if (type instanceof DecimalType) {
+            return "double";
+        }
+        if (isArrayType(type)) {
+            Type elementType = type.getTypeParameters().get(0);
+            if (isArrayType(elementType) || isMapType(elementType) || isRowType(elementType)) {
+                throw new PrestoException(NOT_SUPPORTED, "sorry unsupported type: " + type);
+            }
+            return getEsType(elementType);
+        }
+        if (isMapType(type)) {
+            throw new PrestoException(NOT_SUPPORTED, "sorry unsupported type: " + type);
+        }
+        if (isRowType(type)) {
+            throw new PrestoException(NOT_SUPPORTED, "sorry unsupported type: " + type);
+        }
+
+        throw new PrestoException(NOT_SUPPORTED, "unsupported type: " + type);
     }
 
     private static IndexResolution buildGetIndexResult(String indexOrAlias,
