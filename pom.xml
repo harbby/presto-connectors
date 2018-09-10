@@ -32,8 +32,8 @@
         <module>presto-elasticsearch6</module>
         <module>elasticsearch-apache2</module>
         <module>presto-kudu</module>
-        <!--<module>presto-hbase</module>-->
-        <!--<module>hbase-apache2</module>-->
+        <module>presto-hbase</module>
+        <module>hbase-apache2</module>
     </modules>
 
 </project>

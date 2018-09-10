@@ -15,6 +15,14 @@ Presto-elasticsearch is a standard Maven project. Simply run the following comma
 
     ./mvn clean package -DskipTests
 
+## Major
+`dsl,type,id,score` 
+as a built-in reserved field, if they exist in the index they will receive the following error
+```
+java.lang.IllegalStateException: Duplicate key ElasticsearchColumnHandle
+```
+
+
 ## intall
 
 es 2.x
