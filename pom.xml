@@ -13,7 +13,6 @@
     <artifactId>presto-runners</artifactId>
     <packaging>pom</packaging>
 
-
     <licenses>
         <license>
             <name>Apache License 2.0</name>
