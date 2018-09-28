@@ -1,5 +1,6 @@
 package com.facebook.presto.hbase.io;
 
+import com.facebook.presto.hbase.conf.HbaseSessionProperties;
 import com.facebook.presto.hbase.model.HbaseColumnConstraint;
 import com.facebook.presto.hbase.model.HbaseColumnHandle;
 import com.facebook.presto.hbase.model.HbaseSplit;
@@ -62,11 +63,11 @@ public class HbaseRecordSet
                     getScanFromPrestoRange(range.get())
                     : new Scan();
 
-            scan.setMaxVersions(1); //只返回最新的
+            scan.setMaxVersions(HbaseSessionProperties.getScanMaxVersions(session)); //默认值为1 只返回最新的
             //指定最多返回的Cell数目。用于防止一行中有过多的数据，导致OutofMemory错误。
-            scan.setBatch(10); //一次最多返回10列
-            scan.setCaching(50);
-            scan.setMaxResultSize(10000); //最多返回1w条
+            scan.setBatch(HbaseSessionProperties.getScanBatchSize(session)); //一次最多返回得列数, 如果列数超过该值会被 拆分成多列
+            scan.setCaching(HbaseSessionProperties.getScanBatchCaching(session));
+            scan.setMaxResultSize(HbaseSessionProperties.getScanMaxResultSize(session)); //最多返回1w条
 
             columnHandles.forEach(column -> {
                 column.getFamily().ifPresent(x -> scan.addColumn(Bytes.toBytes(x), Bytes.toBytes(column.getQualifier().get())));

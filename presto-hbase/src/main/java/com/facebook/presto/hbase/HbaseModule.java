@@ -52,7 +52,7 @@ public class HbaseModule
         binder.bind(HbaseSessionProperties.class).in(Scopes.SINGLETON);
         binder.bind(HbaseTableManager.class).in(Scopes.SINGLETON);
 
-        binder.bind(Connection.class).toProvider(ConnectionProvider.class);
+        binder.bind(Connection.class).toProvider(ConnectionProvider.class).in(Scopes.SINGLETON);
     }
 
     public static final class TypeDeserializer
@@ -95,6 +95,12 @@ public class HbaseModule
             try {
                 Configuration conf = HBaseConfiguration.create();
                 conf.set("hbase.zookeeper.quorum", zooKeepers);
+
+                conf.set("hbase.client.pause", "50");
+                conf.set("hbase.client.retries.number", "3");
+                conf.set("hbase.rpc.timeout", "2000");
+                conf.set("hbase.client.operation.timeout", "3000");
+                conf.set("hbase.client.scanner.timeout.period", "10000");
 
                 Connection connection = ConnectionFactory.createConnection(conf);
                 LOG.info("Connection to instance %s at %s established, user %s");
