@@ -1,6 +1,7 @@
 package com.facebook.presto.elasticsearch5;
 
 import com.facebook.presto.elasticsearch.ElasticsearchPlugin;
+import com.facebook.presto.elasticsearch5.functions.MatchQueryFunction;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.Set;
