@@ -12,7 +12,7 @@ public class Elasticsearch5Plugin
     public Set<Class<?>> getFunctions()
     {
         return ImmutableSet.<Class<?>>builder()
-//                .add(MatchQueryFunction.class)
+                .add(MatchQueryFunction.class)
                 .build();
     }
 
