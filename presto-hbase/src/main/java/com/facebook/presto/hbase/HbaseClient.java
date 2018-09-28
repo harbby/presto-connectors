@@ -93,17 +93,12 @@ public final class HbaseClient
             Collection<Range> rowIdRanges = getRangesFromDomain(rowIdDomain);  //serializer
             List<TabletSplitMetadata> tabletSplits = new ArrayList<>();
 
-            // Use the secondary index, if enabled       未支持索引功能
-//            if (HbaseSessionProperties.isOptimizeIndexEnabled(session)) {
-//                // Get the scan authorizations to query the index
-//                Authorizations auths = getScanAuthorizations(session, schema, table);
-//
-//                // Check the secondary index based on the column constraints
-//                // If this returns true, return the tablet splits to Presto
-//                if (indexLookup.applyIndex(schema, table, session, constraints, rowIdRanges, tabletSplits, serializer, auths)) {
-//                    return tabletSplits;
-//                }
-//            }
+            //List<HRegionInfo> tableRegions = connection.getAdmin().getTableRegions(TableName.valueOf(tableName));
+//            HRegionInfo regionInfo = tableRegions.get(0);
+//            regionInfo.getStartKey()
+//            regionInfo.containsRange()
+//            tableRegions.get(0).getStartKey();
+//            tableRegions.get(0).getEndKey();
 
             // If we can't (or shouldn't) use the secondary index, we will just use the Range from the row ID domain
 

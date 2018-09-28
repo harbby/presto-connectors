@@ -3,17 +3,14 @@ package com.facebook.presto.hbase.conf;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.session.PropertyMetadata;
 import com.google.common.collect.ImmutableList;
-import io.airlift.units.Duration;
 
 import javax.inject.Inject;
 
 import java.util.List;
 
 import static com.facebook.presto.spi.session.PropertyMetadata.booleanSessionProperty;
-import static com.facebook.presto.spi.session.PropertyMetadata.doubleSessionProperty;
 import static com.facebook.presto.spi.session.PropertyMetadata.integerSessionProperty;
 import static com.facebook.presto.spi.session.PropertyMetadata.stringSessionProperty;
-import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 
 /**
  * Class contains all session-based properties for the Hbase connector.
@@ -27,14 +24,13 @@ public final class HbaseSessionProperties
 {
     private static final String OPTIMIZE_LOCALITY_ENABLED = "optimize_locality_enabled";
     private static final String OPTIMIZE_SPLIT_RANGES_ENABLED = "optimize_split_ranges_enabled";
-    private static final String OPTIMIZE_INDEX_ENABLED = "optimize_index_enabled";
-    private static final String INDEX_ROWS_PER_SPLIT = "index_rows_per_split";
-    private static final String INDEX_THRESHOLD = "index_threshold";
-    private static final String INDEX_LOWEST_CARDINALITY_THRESHOLD = "index_lowest_cardinality_threshold";
-    private static final String INDEX_METRICS_ENABLED = "index_metrics_enabled";
+
     private static final String SCAN_USERNAME = "scan_username";
-    private static final String INDEX_SHORT_CIRCUIT_CARDINALITY_FETCH = "index_short_circuit_cardinality_fetch";
-    private static final String INDEX_CARDINALITY_CACHE_POLLING_DURATION = "index_cardinality_cache_polling_duration";
+
+    private static final String SCAN_BATCH_SIZE = "scan_batch_size";  // scan.setBatch(10); 设置scala查询 每条数据最大列数 如果咧数超过该值 查询会被拆分成多行
+    private static final String SCAN_CACHING = "scan_caching_number"; // scan.setCaching(50);
+    private static final String SCAN_MAX_RESULT_SIZE = "scan_max_result_size"; // scan.setMaxResultSize(10000);
+    private static final String SCAN_MAX_VERSIONS = "scan_max_versions";  // scan.setMaxVersions(1);
 
     private final List<PropertyMetadata<?>> sessionProperties;
 
@@ -55,52 +51,31 @@ public final class HbaseSessionProperties
                 SCAN_USERNAME,
                 "User to impersonate when scanning the tables. This property trumps the scan_auths table property. Default is the user in the configuration file.", null, false);
 
-        PropertyMetadata<Boolean> s4 = booleanSessionProperty(
-                OPTIMIZE_INDEX_ENABLED,
-                "Set to true to enable usage of the secondary index on query. Default true.",
-                true,
+        PropertyMetadata<Integer> s4 = integerSessionProperty(
+                SCAN_BATCH_SIZE,
+                "Set the maximum number of values to return for each call to next(). Default 100.",
+                100,
                 false);
 
         PropertyMetadata<Integer> s5 = integerSessionProperty(
-                INDEX_ROWS_PER_SPLIT,
-                "The number of Hbase row IDs that are packed into a single Presto split. Default 10000",
-                10000,
+                SCAN_CACHING,
+                "Set the number of rows for caching that will be passed to scanners. Default 50.",
+                50,
                 false);
 
-        PropertyMetadata<Double> s6 = doubleSessionProperty(
-                INDEX_THRESHOLD,
-                "The ratio between number of rows to be scanned based on the index over the total number of rows. If the ratio is below this threshold, the index will be used. Default .2",
-                0.2,
+        PropertyMetadata<Integer> s6 = integerSessionProperty(
+                SCAN_MAX_RESULT_SIZE,
+                "Set the maximum result size. The default is -1; this means that no specific. The maximum result size in bytes . Default -1.",
+                -1,
                 false);
 
-        PropertyMetadata<Double> s7 = doubleSessionProperty(
-                INDEX_LOWEST_CARDINALITY_THRESHOLD,
-                "The threshold where the column with the lowest cardinality will be used instead of computing an intersection of ranges in the secondary index. Secondary index must be enabled. Default .01",
-                0.01,
+        PropertyMetadata<Integer> s7 = integerSessionProperty(
+                SCAN_MAX_VERSIONS,
+                "Get up to the specified number of versions of each column. Default 1.",
+                1,
                 false);
 
-        PropertyMetadata<Boolean> s8 = booleanSessionProperty(
-                INDEX_METRICS_ENABLED,
-                "Set to true to enable usage of the metrics table to optimize usage of the index. Default true",
-                true,
-                false);
-
-        PropertyMetadata<Boolean> s9 = booleanSessionProperty(
-                INDEX_SHORT_CIRCUIT_CARDINALITY_FETCH,
-                "Short circuit the retrieval of index metrics once any column is less than the lowest cardinality threshold. Default true",
-                true,
-                false);
-
-        PropertyMetadata<String> s10 = new PropertyMetadata<>(
-                INDEX_CARDINALITY_CACHE_POLLING_DURATION,
-                "Sets the cardinality cache polling duration for short circuit retrieval of index metrics. Default 10ms",
-                VARCHAR, String.class,
-                "10ms",
-                false,
-                duration -> Duration.valueOf(duration.toString()).toString(),
-                object -> object);
-
-        sessionProperties = ImmutableList.of(s1, s2, s3, s4, s5, s6, s7, s8, s9, s10);
+        sessionProperties = ImmutableList.of(s1, s2, s3, s4, s5, s6, s7);
     }
 
     public List<PropertyMetadata<?>> getSessionProperties()
@@ -118,43 +93,28 @@ public final class HbaseSessionProperties
         return session.getProperty(OPTIMIZE_SPLIT_RANGES_ENABLED, Boolean.class);
     }
 
-    public static boolean isOptimizeIndexEnabled(ConnectorSession session)
-    {
-        return session.getProperty(OPTIMIZE_INDEX_ENABLED, Boolean.class);
-    }
-
-    public static double getIndexThreshold(ConnectorSession session)
-    {
-        return session.getProperty(INDEX_THRESHOLD, Double.class);
-    }
-
-    public static int getNumIndexRowsPerSplit(ConnectorSession session)
-    {
-        return session.getProperty(INDEX_ROWS_PER_SPLIT, Integer.class);
-    }
-
-    public static double getIndexSmallCardThreshold(ConnectorSession session)
-    {
-        return session.getProperty(INDEX_LOWEST_CARDINALITY_THRESHOLD, Double.class);
-    }
-
-    public static Duration getIndexCardinalityCachePollingDuration(ConnectorSession session)
-    {
-        return Duration.valueOf(session.getProperty(INDEX_CARDINALITY_CACHE_POLLING_DURATION, String.class));
-    }
-
-    public static boolean isIndexMetricsEnabled(ConnectorSession session)
-    {
-        return session.getProperty(INDEX_METRICS_ENABLED, Boolean.class);
-    }
-
     public static String getScanUsername(ConnectorSession session)
     {
         return session.getProperty(SCAN_USERNAME, String.class);
     }
 
-    public static boolean isIndexShortCircuitEnabled(ConnectorSession session)
+    public static int getScanBatchSize(ConnectorSession session)
     {
-        return session.getProperty(INDEX_SHORT_CIRCUIT_CARDINALITY_FETCH, Boolean.class);
+        return session.getProperty(SCAN_BATCH_SIZE, Integer.class);
+    }
+
+    public static int getScanBatchCaching(ConnectorSession session)
+    {
+        return session.getProperty(SCAN_CACHING, Integer.class);
+    }
+
+    public static int getScanMaxResultSize(ConnectorSession session)
+    {
+        return session.getProperty(SCAN_MAX_RESULT_SIZE, Integer.class);
+    }
+
+    public static int getScanMaxVersions(ConnectorSession session)
+    {
+        return session.getProperty(SCAN_MAX_VERSIONS, Integer.class);
     }
 }
