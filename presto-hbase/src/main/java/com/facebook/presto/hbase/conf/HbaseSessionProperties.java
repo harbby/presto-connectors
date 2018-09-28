@@ -8,9 +8,9 @@ import javax.inject.Inject;
 
 import java.util.List;
 
-import static com.facebook.presto.spi.session.PropertyMetadata.booleanSessionProperty;
-import static com.facebook.presto.spi.session.PropertyMetadata.integerSessionProperty;
-import static com.facebook.presto.spi.session.PropertyMetadata.stringSessionProperty;
+import static com.facebook.presto.spi.session.PropertyMetadata.booleanProperty;
+import static com.facebook.presto.spi.session.PropertyMetadata.integerProperty;
+import static com.facebook.presto.spi.session.PropertyMetadata.stringProperty;
 
 /**
  * Class contains all session-based properties for the Hbase connector.
@@ -37,39 +37,39 @@ public final class HbaseSessionProperties
     @Inject
     public HbaseSessionProperties()
     {
-        PropertyMetadata<Boolean> s1 = booleanSessionProperty(
+        PropertyMetadata<Boolean> s1 = booleanProperty(
                 OPTIMIZE_LOCALITY_ENABLED,
                 "Set to true to enable data locality for non-indexed scans. Default true.", true,
                 false);
 
-        PropertyMetadata<Boolean> s2 = booleanSessionProperty(
+        PropertyMetadata<Boolean> s2 = booleanProperty(
                 OPTIMIZE_SPLIT_RANGES_ENABLED,
                 "Set to true to split non-indexed queries by tablet splits. Should generally be true.",
                 true, false);
 
-        PropertyMetadata<String> s3 = stringSessionProperty(
+        PropertyMetadata<String> s3 = stringProperty(
                 SCAN_USERNAME,
                 "User to impersonate when scanning the tables. This property trumps the scan_auths table property. Default is the user in the configuration file.", null, false);
 
-        PropertyMetadata<Integer> s4 = integerSessionProperty(
+        PropertyMetadata<Integer> s4 = integerProperty(
                 SCAN_BATCH_SIZE,
                 "Set the maximum number of values to return for each call to next(). Default 100.",
                 100,
                 false);
 
-        PropertyMetadata<Integer> s5 = integerSessionProperty(
+        PropertyMetadata<Integer> s5 = integerProperty(
                 SCAN_CACHING,
                 "Set the number of rows for caching that will be passed to scanners. Default 50.",
                 50,
                 false);
 
-        PropertyMetadata<Integer> s6 = integerSessionProperty(
+        PropertyMetadata<Integer> s6 = integerProperty(
                 SCAN_MAX_RESULT_SIZE,
                 "Set the maximum result size. The default is -1; this means that no specific. The maximum result size in bytes . Default -1.",
                 -1,
                 false);
 
-        PropertyMetadata<Integer> s7 = integerSessionProperty(
+        PropertyMetadata<Integer> s7 = integerProperty(
                 SCAN_MAX_VERSIONS,
                 "Get up to the specified number of versions of each column. Default 1.",
                 1,
