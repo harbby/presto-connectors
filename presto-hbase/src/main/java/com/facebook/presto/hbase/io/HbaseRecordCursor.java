@@ -12,8 +12,9 @@ import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.mapreduce.RecordReader;
 
 import java.io.IOException;
 import java.util.List;
@@ -43,19 +44,19 @@ public class HbaseRecordCursor
     private final String rowIdName;
     private final List<HbaseColumnHandle> columnHandles;
     private final List<HbaseColumnConstraint> constraints;
-    private final ResultScanner resultScanner;
+    private final RecordReader<ImmutableBytesWritable, Result> resultRecordReader;
     private Result result;
 
     private long nanoStart;
     private long nanoEnd;
 
     public HbaseRecordCursor(
-            ResultScanner resultScanner,
+            RecordReader<ImmutableBytesWritable, Result> resultRecordReader,
             String rowIdName,
             List<HbaseColumnHandle> columnHandles,
             List<HbaseColumnConstraint> constraints)
     {
-        this.resultScanner = requireNonNull(resultScanner, "resultScanner is null");
+        this.resultRecordReader = requireNonNull(resultRecordReader, "resultScanner is null");
         this.rowIdName = requireNonNull(rowIdName, "rowIdName is null");
         this.columnHandles = requireNonNull(columnHandles, "columnHandles is null");
         this.constraints = requireNonNull(constraints, "constraints is null");
@@ -87,15 +88,15 @@ public class HbaseRecordCursor
         }
 
         try {
-            this.result = resultScanner.next();
-            if (result != null) {
+            if (resultRecordReader.nextKeyValue()) {
+                this.result = resultRecordReader.getCurrentValue();
                 return true;
             }
             else {
                 return false;
             }
         }
-        catch (IOException e) {
+        catch (IOException | InterruptedException e) {
             throw new PrestoException(IO_ERROR, "Caught IO error from resultScanner on read", e);
         }
     }
@@ -214,8 +215,13 @@ public class HbaseRecordCursor
     @Override
     public void close()
     {
-        if (resultScanner != null) {
-            resultScanner.close();
+        if (resultRecordReader != null) {
+            try {
+                resultRecordReader.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         nanoEnd = System.nanoTime();
     }

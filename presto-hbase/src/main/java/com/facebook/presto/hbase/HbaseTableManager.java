@@ -49,10 +49,12 @@ public class HbaseTableManager
     {
         try {
             // If the table schema is not "default" and the namespace does not exist, create it
-            Set<String> namespaces = Arrays.stream(connection.getAdmin().listNamespaceDescriptors())
-                    .map(x -> x.getName()).collect(Collectors.toSet());
-            if (!schema.equals(DEFAULT) && !namespaces.contains(schema)) {
-                connection.getAdmin().createNamespace(NamespaceDescriptor.create(schema).build());
+            try (Admin admin = connection.getAdmin()) {
+                Set<String> namespaces = Arrays.stream(admin.listNamespaceDescriptors())
+                        .map(x -> x.getName()).collect(Collectors.toSet());
+                if (!schema.equals(DEFAULT) && !namespaces.contains(schema)) {
+                    admin.createNamespace(NamespaceDescriptor.create(schema).build());
+                }
             }
         }
         catch (IOException e) {
@@ -62,8 +64,8 @@ public class HbaseTableManager
 
     public boolean exists(String table)
     {
-        try {
-            return connection.getAdmin().tableExists(TableName.valueOf(table));
+        try (Admin admin = connection.getAdmin()) {
+            return admin.tableExists(TableName.valueOf(table));
         }
         catch (IOException e) {
             throw new PrestoException(UNEXPECTED_HBASE_ERROR, "Failed to check for existence Hbase table", e);
@@ -87,22 +89,6 @@ public class HbaseTableManager
             throw new PrestoException(UNEXPECTED_HBASE_ERROR, "Failed to create Hbase table", e);
         }
     }
-
-//    public void setIterator(String table, IteratorSetting setting)
-//    {
-//        try {
-//            // Remove any existing iterator settings of the same name, if applicable
-//            Map<String, EnumSet<IteratorScope>> iterators = connector.tableOperations().listIterators(table);
-//            if (iterators.containsKey(setting.getName())) {
-//                connector.tableOperations().removeIterator(table, setting.getName(), iterators.get(setting.getName()));
-//            }
-//
-//            connector.tableOperations().attachIterator(table, setting);
-//        }
-//        catch (TableNotFoundException e) {
-//            throw new PrestoException(HBASE_TABLE_DNE, "Failed to set iterator, table does not exist", e);
-//        }
-//    }
 
     public void deleteHbaseTable(String tableName)
     {

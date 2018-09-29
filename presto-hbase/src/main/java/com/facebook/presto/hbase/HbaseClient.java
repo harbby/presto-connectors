@@ -9,7 +9,7 @@ import com.facebook.presto.hbase.metadata.HbaseView;
 import com.facebook.presto.hbase.metadata.ZooKeeperMetadataManager;
 import com.facebook.presto.hbase.model.HbaseColumnConstraint;
 import com.facebook.presto.hbase.model.HbaseColumnHandle;
-import com.facebook.presto.hbase.model.TabletSplitMetadata;
+import com.facebook.presto.hbase.model.HbaseSplit;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableMetadata;
@@ -18,17 +18,33 @@ import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.TableNotFoundException;
 import com.facebook.presto.spi.predicate.Domain;
 import com.facebook.presto.spi.predicate.Range;
+import com.facebook.presto.spi.type.Type;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.airlift.log.Logger;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
+import org.apache.hadoop.hbase.mapreduce.TableInputFormatBase;
+import org.apache.hadoop.hbase.mapreduce.TableSplit;
+import org.apache.hadoop.hbase.mapreduce.TabletSplitMetadata;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.JobContextImpl;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.RecordReader;
 
 import javax.inject.Inject;
 
+import java.io.IOException;
+import java.lang.reflect.Field;
 import java.security.InvalidParameterException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +56,7 @@ import java.util.stream.Collectors;
 
 import static com.facebook.presto.hbase.HbaseErrorCode.HBASE_TABLE_EXISTS;
 import static com.facebook.presto.hbase.HbaseErrorCode.UNEXPECTED_HBASE_ERROR;
+import static com.facebook.presto.hbase.serializers.HbaseRowSerializerUtil.toHbaseBytes;
 import static com.facebook.presto.spi.StandardErrorCode.INVALID_TABLE_PROPERTY;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -86,45 +103,148 @@ public final class HbaseClient
             List<HbaseColumnConstraint> constraints) //HbaseRowSerializer serializer
     {
         try {
-            String tableName = HbaseTable.getFullTableName(schema, table);
+            TableName tableName = TableName.valueOf(schema, table);
             LOG.debug("Getting tablet splits for table %s", tableName);
 
             // Get the initial Range based on the row ID domain
             Collection<Range> rowIdRanges = getRangesFromDomain(rowIdDomain);  //serializer
-            List<TabletSplitMetadata> tabletSplits = new ArrayList<>();
-
-            //List<HRegionInfo> tableRegions = connection.getAdmin().getTableRegions(TableName.valueOf(tableName));
-//            HRegionInfo regionInfo = tableRegions.get(0);
-//            regionInfo.getStartKey()
-//            regionInfo.containsRange()
-//            tableRegions.get(0).getStartKey();
-//            tableRegions.get(0).getEndKey();
-
-            // If we can't (or shouldn't) use the secondary index, we will just use the Range from the row ID domain
 
             // Split the ranges on tablet boundaries, if enabled
-            Collection<Range> splitRanges = rowIdRanges;  // if not enabled, just use the same collection
-
             // Create TabletSplitMetadata objects for each range
             boolean fetchTabletLocations = HbaseSessionProperties.isOptimizeLocalityEnabled(session);
 
             LOG.debug("Fetching tablet locations: %s", fetchTabletLocations);
 
-            for (Range range : splitRanges) {
-                // default, just use the default location
-                tabletSplits.add(new TabletSplitMetadata(Optional.empty(), ImmutableList.of(range)));
+            ImmutableList.Builder<TabletSplitMetadata> builder = ImmutableList.builder();
+            if (rowIdRanges.size() == 0) {  //无 rowkey过滤
+                LOG.warn("This request has no rowkey filter");
             }
-            if (tabletSplits.isEmpty()) {
-                tabletSplits.add(new TabletSplitMetadata(Optional.empty(), ImmutableList.of()));
+            List<Scan> rowIdScans = rowIdRanges.size() == 0 ?
+                    Arrays.asList(new Scan())
+                    : rowIdRanges.stream().map(HbaseClient::getScanFromPrestoRange).collect(Collectors.toList());
+
+            for (Scan scan : rowIdScans) {
+                TableInputFormat tableInputFormat = getNewTableInputFormat(connection, tableName);
+                tableInputFormat.setConf(connection.getConfiguration());
+                tableInputFormat.setScan(scan);
+
+                JobContext context = new JobContextImpl(new JobConf(), null);
+                List<TableSplit> splits = tableInputFormat.getSplits(context)
+                        .stream().map(x -> (TableSplit) x).collect(Collectors.toList());
+
+                for (TableSplit split : splits) {
+                    TabletSplitMetadata metadata = new TabletSplitMetadata(
+                            split.getTable().getName(),
+                            split.getStartRow(),
+                            split.getEndRow(),
+                            TabletSplitMetadata.convertScanToString(split.getScan()),
+                            split.getRegionLocation(),
+                            split.getLength());
+                    builder.add(metadata);
+                }
             }
+            List<TabletSplitMetadata> tabletSplits = builder.build();
 
             // Log some fun stuff and return the tablet splits
-            LOG.debug("Number of splits for table %s is %d with %d ranges", tableName, tabletSplits.size(), splitRanges.size());
+            LOG.debug("Number of splits for table %s is %d with %d ranges", tableName, tabletSplits.size(), rowIdRanges.size());
             return tabletSplits;
         }
         catch (Exception e) {
             throw new PrestoException(UNEXPECTED_HBASE_ERROR, "Failed to get splits from Hbase", e);
         }
+    }
+
+    public RecordReader<ImmutableBytesWritable, Result> execSplit(ConnectorSession session, HbaseSplit split, List<HbaseColumnHandle> columnHandles)
+            throws IllegalAccessException, NoSuchFieldException, IOException, InterruptedException
+    {
+        TableName tableName = TableName.valueOf(split.getSchema(), split.getTable());
+        Scan scan = TabletSplitMetadata.convertStringToScan(split.getSplitMetadata().getScan());
+        buildScan(scan, session, columnHandles);
+
+        TableInputFormat tableInputFormat = getNewTableInputFormat(connection, tableName);
+        tableInputFormat.setScan(scan);
+
+        RecordReader<ImmutableBytesWritable, Result> resultRecordReader = tableInputFormat.createRecordReader(new TableSplit(
+                TableName.valueOf(split.getSplitMetadata().getTableName()),
+                scan,
+                split.getSplitMetadata().getStartRow(),
+                split.getSplitMetadata().getEndRow(),
+                split.getSplitMetadata().getRegionLocation(),
+                split.getSplitMetadata().getLength()
+        ), null);
+        resultRecordReader.initialize(null, null);
+        return resultRecordReader;
+    }
+
+    private static void buildScan(Scan scan, ConnectorSession session, List<HbaseColumnHandle> columnHandles)
+    {
+        scan.setMaxVersions(HbaseSessionProperties.getScanMaxVersions(session)); //默认值为1 只返回最新的
+        //指定最多返回的Cell数目。用于防止一行中有过多的数据，导致OutofMemory错误。
+        scan.setBatch(HbaseSessionProperties.getScanBatchSize(session)); //一次最多返回得列数, 如果列数超过该值会被 拆分成多列
+        scan.setCaching(HbaseSessionProperties.getScanBatchCaching(session));
+        scan.setMaxResultSize(HbaseSessionProperties.getScanMaxResultSize(session)); //最多返回1w条
+
+        columnHandles.forEach(column -> {
+            column.getFamily().ifPresent(x -> scan.addColumn(Bytes.toBytes(x), Bytes.toBytes(column.getQualifier().get())));
+        });
+    }
+
+    private static Scan getScanFromPrestoRange(Range prestoRange)
+            throws TableNotFoundException
+    {
+        Scan hbaseScan = new Scan();
+        if (prestoRange.isAll()) { //全表扫描  all rowkey
+        }
+        else if (prestoRange.isSingleValue()) {
+            //直接get即可
+            Type type = prestoRange.getType();
+            Object value = prestoRange.getSingleValue();
+            hbaseScan.setStartRow(toHbaseBytes(type, value));
+            hbaseScan.setStopRow(toHbaseBytes(type, value));
+        }
+        else {
+            if (prestoRange.getLow().isLowerUnbounded()) {
+                // If low is unbounded, then create a range from (-inf, value), checking inclusivity
+                Type type = prestoRange.getType();
+                Object value = prestoRange.getHigh().getValue();
+                hbaseScan.setStopRow(toHbaseBytes(type, value));
+            }
+            else if (prestoRange.getHigh().isUpperUnbounded()) {
+                // If high is unbounded, then create a range from (value, +inf), checking inclusivity
+                Type type = prestoRange.getType();
+                Object value = prestoRange.getLow().getValue();
+                hbaseScan.setStartRow(toHbaseBytes(type, value));
+            }
+            else {
+                // If high is unbounded, then create a range from low to high, checking inclusivity
+                Type type = prestoRange.getType();
+                Object startSplit = prestoRange.getLow().getValue();
+                Object endSplit = prestoRange.getHigh().getValue();
+                //------- set start and stop -----
+                hbaseScan.setStartRow(toHbaseBytes(type, startSplit));
+                hbaseScan.setStopRow(toHbaseBytes(type, endSplit));
+            }
+        }
+
+        return hbaseScan;
+    }
+
+    private static void inject(Class<?> driver, Object obj, String key, Object value)
+            throws NoSuchFieldException, IllegalAccessException
+    {
+        Field field = driver.getDeclaredField(key);
+        field.setAccessible(true);
+        field.set(obj, value);
+    }
+
+    private static TableInputFormat getNewTableInputFormat(Connection connection, TableName tableName)
+            throws IOException, NoSuchFieldException, IllegalAccessException
+    {
+        TableInputFormat tableInputFormat = new TableInputFormat();
+        HbaseClient.inject(TableInputFormatBase.class, tableInputFormat, "table", connection.getTable(tableName));
+        HbaseClient.inject(TableInputFormatBase.class, tableInputFormat, "regionLocator", connection.getRegionLocator(tableName));
+        HbaseClient.inject(TableInputFormatBase.class, tableInputFormat, "admin", connection.getAdmin());
+        return tableInputFormat;
     }
 
     /**
@@ -218,9 +338,6 @@ public final class HbaseClient
             }
         }
 
-        // Create index tables, if appropriate  创建索引表
-        //createIndexTables(table);
-
         return table;
     }
 
@@ -234,26 +351,11 @@ public final class HbaseClient
         }
 
         if (!table.isExternal()) {
-            // delete the table and index tables
+            // delete the table
             String fullTableName = table.getFullTableName();
             if (tableManager.exists(fullTableName)) {
                 tableManager.deleteHbaseTable(fullTableName);
             }
-
-            /**
-             * 目前还不支持索引
-             * */
-//            if (table.isIndexed()) {
-//                String indexTableName = Indexer.getIndexTableName(tableName);
-//                if (tableManager.exists(indexTableName)) {
-//                    tableManager.deleteHbaseTable(indexTableName);
-//                }
-//
-//                String metricsTableName = Indexer.getMetricsTableName(tableName);
-//                if (tableManager.exists(metricsTableName)) {
-//                    tableManager.deleteHbaseTable(metricsTableName);
-//                }
-//            }
         }
     }
 
@@ -320,39 +422,6 @@ public final class HbaseClient
         return cBuilder.build();
     }
 
-    /**
-     * Creates the index tables from the given Hbase table. No op if
-     * {@link HbaseTable#isIndexed()} is false.
-     *
-     * @param table Table to create index tables
-     */
-//    private void createIndexTables(HbaseTable table)
-//    {
-//        // Early-out if table is not indexed
-//        if (!table.isIndexed()) {
-//            return;
-//        }
-//
-//        // Create index table if it does not exist (for 'external' table)
-//        if (!tableManager.exists(table.getIndexTableName())) {
-//            tableManager.createHbaseTable(table.getIndexTableName());
-//        }
-//
-//        // Create index metrics table if it does not exist
-//        if (!tableManager.exists(table.getMetricsTableName())) {
-//            tableManager.createHbaseTable(table.getMetricsTableName());
-//        }
-//
-//        // Set locality groups on index and metrics table
-//        Map<String, Set<Text>> indexGroups = Indexer.getLocalityGroups(table);
-//        tableManager.setFamilys(table.getIndexTableName(), indexGroups);
-//        tableManager.setFamilys(table.getMetricsTableName(), indexGroups);
-//
-//        // Attach iterators to metrics table
-//        for (IteratorSetting setting : Indexer.getMetricIterators(table)) {
-//            tableManager.setIterator(table.getMetricsTableName(), setting);
-//        }
-//    }
     private Set<HColumnDescriptor> getFamilys(Map<String, Object> tableProperties, HbaseTable table)
     {
         Optional<Map<String, Pair<String, String>>> mapping = HbaseTableProperties.getColumnMapping(tableProperties);
@@ -471,19 +540,10 @@ public final class HbaseClient
     private void validateInternalTable(ConnectorTableMetadata meta)
     {
         String table = HbaseTable.getFullTableName(meta.getTable());
-        //String indexTable = Indexer.getIndexTableName(meta.getTable());
-        //String metricsTable = Indexer.getMetricsTableName(meta.getTable());
 
         if (tableManager.exists(table)) {
             throw new PrestoException(HBASE_TABLE_EXISTS, "Cannot create internal table when an Hbase table already exists");
         }
-
-        //-------不检查索引表是否存在----------
-//        if (HbaseTableProperties.getIndexColumns(meta.getProperties()).isPresent()) {
-//            if (tableManager.exists(indexTable) || tableManager.exists(metricsTable)) {
-//                throw new PrestoException(HBASE_TABLE_EXISTS, "Internal table is indexed, but the index table and/or index metrics table(s) already exist");
-//            }
-//        }
     }
 
     /**
