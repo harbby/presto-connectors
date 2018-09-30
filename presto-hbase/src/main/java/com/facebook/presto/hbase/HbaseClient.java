@@ -92,7 +92,6 @@ public final class HbaseClient
      * @param table Table Name
      * @param rowIdDomain Domain for the row ID
      * @param constraints Column constraints for the query
-     * //     * @param serializer Instance of a row serializer
      * @return List of TabletSplitMetadata objects for Presto
      */
     public List<TabletSplitMetadata> getTabletSplits(
@@ -154,6 +153,17 @@ public final class HbaseClient
         }
     }
 
+    /**
+     * Exec the HbaseSplit for a query against an Hbase table.
+     * <p>
+     * Does a whole bunch of fun stuff! Splitting on row ID ranges, applying secondary indexes, column pruning,
+     * all sorts of sweet optimizations. What you have here is an important method.
+     *
+     * @param session Current session
+     * @param split HbaseSplit
+     * @param columnHandles List of HbaseColumnHandle
+     * @return RecordReader<ImmutableBytesWritable ,   Result> for {@link org.apache.hadoop.mapreduce.RecordReader}
+     */
     public RecordReader<ImmutableBytesWritable, Result> execSplit(ConnectorSession session, HbaseSplit split, List<HbaseColumnHandle> columnHandles)
             throws IllegalAccessException, NoSuchFieldException, IOException, InterruptedException
     {
