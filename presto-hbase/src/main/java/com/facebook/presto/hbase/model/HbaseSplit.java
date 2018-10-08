@@ -24,6 +24,7 @@ public class HbaseSplit
 
     private final List<HbaseColumnConstraint> constraints;
     private final TabletSplitMetadata splitMetadata;
+    private final List<HostAddress> addresses;
 
     @JsonCreator
     public HbaseSplit(
@@ -41,6 +42,9 @@ public class HbaseSplit
         this.table = requireNonNull(table, "table is null");
         this.constraints = ImmutableList.copyOf(requireNonNull(constraints, "constraints is null"));
         this.splitMetadata = requireNonNull(splitMetadata, "splitMetadata is null");
+
+        // Parse the host address into a list of addresses, this would be an Hbase Tablet server or some localhost thing
+        this.addresses = ImmutableList.of(HostAddress.fromString(splitMetadata.getRegionLocation()));
     }
 
     @JsonProperty
@@ -94,7 +98,7 @@ public class HbaseSplit
     @Override
     public List<HostAddress> getAddresses()
     {
-        return null;
+        return addresses;
     }
 
     @Override
