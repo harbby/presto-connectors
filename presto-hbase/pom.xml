@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <parent>
-        <artifactId>presto-runners</artifactId>
+        <artifactId>presto-connectors</artifactId>
         <groupId>com.facebook.presto</groupId>
         <version>0.210</version>
     </parent>

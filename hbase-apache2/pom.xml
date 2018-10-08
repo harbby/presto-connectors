@@ -14,7 +14,7 @@
 
     <name>hbase-apache2</name>
     <description>Shaded version of Apache Hbase 1.2.x for Presto</description>
-    <url>https://github.com/ideal-hp/presto-runners/tree/master/hbase-apache2</url>
+    <url>https://github.com/ideal-hp/presto-connectors/tree/master/hbase-apache2</url>
 
     <inceptionYear>2013</inceptionYear>
 

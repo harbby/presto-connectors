@@ -1,8 +1,8 @@
-# Presto-runners [![Build Status](http://img.shields.io/travis/ideal-hp/presto-runners.svg?style=flat&branch=master)](https://travis-ci.org/ideal-hp/presto-runners)
-The Presto-runners
+# Presto-connectors
+The Presto-connectors
 
 ## Building
-Presto-runners builds use Maven and requires Java 8 or higher.
+Presto-connectors builds use Maven and requires Java 8 or higher.
 
 ```
 # Build and install distributions

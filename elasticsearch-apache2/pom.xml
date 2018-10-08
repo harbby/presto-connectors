@@ -14,7 +14,7 @@
 
     <name>elasticsearch-apache2</name>
     <description>Shaded version of elasticsearch 2.4.x for Presto</description>
-    <url>https://github.com/ideal-hp/presto-runners/tree/master/elasticsearch-apache2</url>
+    <url>https://github.com/ideal-hp/presto-connectors/tree/master/elasticsearch-apache2</url>
 
     <inceptionYear>2013</inceptionYear>
 
