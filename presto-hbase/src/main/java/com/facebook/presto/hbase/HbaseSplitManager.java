@@ -5,7 +5,6 @@ import com.facebook.presto.hbase.model.HbaseColumnHandle;
 import com.facebook.presto.hbase.model.HbaseSplit;
 import com.facebook.presto.hbase.model.HbaseTableHandle;
 import com.facebook.presto.hbase.model.HbaseTableLayoutHandle;
-import com.facebook.presto.hbase.model.TabletSplitMetadata;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorSplit;
@@ -17,6 +16,7 @@ import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.predicate.Domain;
 import com.facebook.presto.spi.predicate.TupleDomain;
 import com.google.common.collect.ImmutableList;
+import org.apache.hadoop.hbase.mapreduce.TabletSplitMetadata;
 
 import javax.inject.Inject;
 
@@ -67,10 +67,9 @@ public class HbaseSplitManager
                     schemaName,
                     tableName,
                     rowIdName,
-                    splitMetadata.getRanges(),
+                    splitMetadata,
                     constraints,
-                    tableHandle.getScanAuthorizations(),
-                    splitMetadata.getHostPort());
+                    tableHandle.getScanAuthorizations());
             cSplits.add(split);
         }
 

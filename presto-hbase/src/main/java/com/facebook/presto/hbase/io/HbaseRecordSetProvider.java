@@ -1,5 +1,6 @@
 package com.facebook.presto.hbase.io;
 
+import com.facebook.presto.hbase.HbaseClient;
 import com.facebook.presto.hbase.HbaseConnectorId;
 import com.facebook.presto.hbase.conf.HbaseConfig;
 import com.facebook.presto.hbase.model.HbaseColumnHandle;
@@ -11,7 +12,6 @@ import com.facebook.presto.spi.RecordSet;
 import com.facebook.presto.spi.connector.ConnectorRecordSetProvider;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.google.common.collect.ImmutableList;
-import org.apache.hadoop.hbase.client.Connection;
 
 import javax.inject.Inject;
 
@@ -24,16 +24,16 @@ public class HbaseRecordSetProvider
         implements ConnectorRecordSetProvider
 {
     private final String connectorId;
-    private final Connection connection;
+    private final HbaseClient hbaseClient;
     private final HbaseConfig config;
 
     @Inject
     public HbaseRecordSetProvider(
-            Connection connection,
+            HbaseClient hbaseClient,
             HbaseConnectorId connectorId,
             HbaseConfig config)
     {
-        this.connection = requireNonNull(connection, "connection is null");
+        this.hbaseClient = requireNonNull(hbaseClient, "hbaseClient is null");
         this.connectorId = requireNonNull(connectorId, "connectorId is null").toString();
         this.config = requireNonNull(config, "config is null");
     }
@@ -50,6 +50,6 @@ public class HbaseRecordSetProvider
             handles.add((HbaseColumnHandle) handle);
         }
 
-        return new HbaseRecordSet(connection, session, hbaseSplit, handles.build());
+        return new HbaseRecordSet(hbaseClient, session, hbaseSplit, handles.build());
     }
 }

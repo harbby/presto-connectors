@@ -133,13 +133,11 @@ public class HbasePageSink
     @Override
     public CompletableFuture<Collection<Slice>> finish()
     {
-        if (hTable != null) {
-            try (Table table = hTable) {
-                table.put(puts);
-            }
-            catch (IOException e) {
-                throw new PrestoException(UNEXPECTED_HBASE_ERROR, "Error when htable closes", e);
-            }
+        try (Table table = hTable) {
+            flush();
+        }
+        catch (IOException e) {
+            throw new PrestoException(UNEXPECTED_HBASE_ERROR, "Error when htable closes", e);
         }
         // TODO Look into any use of the metadata for writing out the rows
         return completedFuture(ImmutableList.of());
