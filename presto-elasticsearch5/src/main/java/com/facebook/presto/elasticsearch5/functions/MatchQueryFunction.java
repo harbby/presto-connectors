@@ -15,13 +15,15 @@ import org.elasticsearch.index.query.QueryBuilders;
  */
 public final class MatchQueryFunction
 {
+    private MatchQueryFunction(){}
+
     public static final String MATCH_COLUMN_SEP = "__%s@#$%^&*()_+~";
 
     @ScalarFunction("match_query")
     @Description("es match_query")
     @SqlType(StandardTypes.VARCHAR)
     @SqlNullable
-    public Slice matchQuery(
+    public static Slice matchQuery(
             @SqlType(StandardTypes.VARCHAR) Slice filter)
     {
         if (filter == null) {
@@ -37,7 +39,7 @@ public final class MatchQueryFunction
     @Description("es match_phrase")
     @SqlType(StandardTypes.VARCHAR)
     @SqlNullable
-    public Slice matchPhrase(
+    public static Slice matchPhrase(
             @SqlType(StandardTypes.VARCHAR) Slice filter)
     {
         if (filter == null) {
