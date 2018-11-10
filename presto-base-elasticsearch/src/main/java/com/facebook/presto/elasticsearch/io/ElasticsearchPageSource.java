@@ -20,7 +20,6 @@ import io.airlift.slice.Slice;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -182,7 +181,6 @@ public class ElasticsearchPageSource
             output.appendNull();
             return;
         }
-
         Class<?> javaType = type.getJavaType();
         try {
             if (javaType == boolean.class) {
@@ -196,14 +194,14 @@ public class ElasticsearchPageSource
                     type.writeLong(output, ((Number) value).intValue());
                 }
                 else if (type.equals(DATE)) {
-                    long utcMillis = ((Date) value).getTime();
-                    type.writeLong(output, TimeUnit.MILLISECONDS.toDays(utcMillis));
+                    long millis = (Long) value;
+                    type.writeLong(output, TimeUnit.MILLISECONDS.toDays(millis));
                 }
                 else if (type.equals(TIME)) {
-                    type.writeLong(output, ((Date) value).getTime());
+                    type.writeLong(output, (Long) value);
                 }
                 else if (type.equals(TIMESTAMP)) {
-                    type.writeLong(output, ((Date) value).getTime());
+                    type.writeLong(output, (Long) value);
                 }
                 else {
                     throw new PrestoException(GENERIC_INTERNAL_ERROR, "Unhandled type for " + javaType.getSimpleName() + ":" + type.getTypeSignature());

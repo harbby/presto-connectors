@@ -18,11 +18,11 @@ import java.util.stream.Collectors;
 
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
-import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
 import static com.facebook.presto.spi.type.IntegerType.INTEGER;
 import static com.facebook.presto.spi.type.RealType.REAL;
 import static com.facebook.presto.spi.type.SmallintType.SMALLINT;
+import static com.facebook.presto.spi.type.TimestampType.TIMESTAMP;
 import static com.facebook.presto.spi.type.VarbinaryType.VARBINARY;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static java.util.Objects.requireNonNull;
@@ -97,7 +97,7 @@ public class EsTypeManager
                 type = VARBINARY;
                 break;
             case DATE:
-                type = DATE;
+                type = TIMESTAMP;
                 break;
             default:
                 throw new UnsupportedOperationException("column " + esField.getName() + "esType " + esField.getDataType() + " have't support!");

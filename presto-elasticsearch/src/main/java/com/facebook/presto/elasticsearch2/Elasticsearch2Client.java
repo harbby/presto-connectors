@@ -74,9 +74,7 @@ import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchModule;
 
 import javax.inject.Inject;
 
@@ -298,14 +296,6 @@ public final class Elasticsearch2Client
         return qb;
     }
 
-    /**
-     * Gets a collection of Hbase Range objects from the given Presto domain.
-     * This maps the column constraints of the given Domain to an Hbase Range scan.
-     *
-     * @param domain Domain, can be null (returns (-inf, +inf) Range)
-     * @return A collection of Elasticsearch search objects
-     * @throws TableNotFoundException If the Elasticsearch index is not found
-     */
     public static Collection<Range> getRangesFromDomain(Domain domain)
             throws TableNotFoundException
     {
@@ -314,24 +304,22 @@ public final class Elasticsearch2Client
         return rangeBuilder;
     }
 
-    static NamedWriteableRegistry getNamedWriteableRegistry()
-    {
-        IndicesModule indicesModule = new IndicesModule();
-        SearchModule searchModule = new SearchModule();
-//        List<NamedWriteableRegistry.Entry> entries = new ArrayList<>();
-//        entries.addAll(indicesModule.getNamedWriteables());
-//        entries.addAll(searchModule.getNamedWriteables());
-        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry();
-        return namedWriteableRegistry;
-    }
-
+    /**
+     * worker exec split
+     * use Elasticsearch
+     *
+     * @param split ElasticsearchSplit, see getTabletSplits()
+     * @param columns List<ElasticsearchColumnHandle>
+     * @return A Iterator of Elasticsearch search source
+     * @throws TableNotFoundException If the Elasticsearch index is not found
+     */
     @Override
     public SearchResult<Map<String, Object>> execute(ElasticsearchSplit split, List<ElasticsearchColumnHandle> columns)
     {
         byte[] slice = split.getSearchRequest();
         final SearchRequest deserializedRequest = new SearchRequest();
         StreamInput streamInput = new ByteBufferStreamInput(ByteBuffer.wrap(slice));
-        NamedWriteableRegistry namedWriteableRegistry = getNamedWriteableRegistry();
+        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry();
         try (StreamInput in = new NamedWriteableAwareStreamInput(streamInput, namedWriteableRegistry)) {
             deserializedRequest.readFrom(in);
         }
@@ -473,10 +461,7 @@ public final class Elasticsearch2Client
                 if ("@timestamp".equals(columnName)) {    //break @timestamp field
                     continue;
                 }
-                mapping.startObject(columnName)
-                        .field("type", getEsType(type))
-                        //.field("index", "not_analyzed")
-                        .endObject();
+                buildFieldType(mapping.startObject(columnName), type).endObject();
             }
             mapping.endObject().endObject();
         }
@@ -486,57 +471,64 @@ public final class Elasticsearch2Client
         return mapping;
     }
 
-    private static String getEsType(Type type)
+    private static XContentBuilder buildFieldType(XContentBuilder fieldBuilder, Type type)
+            throws IOException
     {
+        final String dateTimeFormat = "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis";
         //Type mapping
         // see:https://www.elastic.co/guide/en/elasticsearch/reference/6.3/mapping-types.html
         if (type.equals(BooleanType.BOOLEAN)) {
-            return "boolean";
+            return fieldBuilder.field("type", "boolean");
         }
         if (type.equals(BigintType.BIGINT)) {
-            return "long";
+            return fieldBuilder.field("type", "long");
         }
         if (type.equals(IntegerType.INTEGER)) {
-            return "integer";
+            return fieldBuilder.field("type", "integer");
         }
         if (type.equals(SmallintType.SMALLINT)) {
-            return "short";
+            return fieldBuilder.field("type", "short");
         }
         if (type.equals(TinyintType.TINYINT)) {
-            return "byte";
+            return fieldBuilder.field("type", "byte");
         }
         if (type.equals(DoubleType.DOUBLE)) {
-            return "double";
-        }
-        if (isVarcharType(type)) {
-            //es 2.4.x
-            return "string";
-        }
-        if (type.equals(VarbinaryType.VARBINARY)) {
-            return "binary";
+            return fieldBuilder.field("type", "double");
         }
         if (type.equals(DateType.DATE)) {
-            return "date";
+            return fieldBuilder.field("type", "date")
+                    .field("format", dateTimeFormat);
         }
         if (type.equals(TimeType.TIME)) {
-            return "date";
+            return fieldBuilder.field("type", "date")
+                    .field("format", dateTimeFormat);
         }
         if (type.equals(TimestampType.TIMESTAMP)) {
-            return "date";
+            return fieldBuilder.field("type", "date")
+                    .field("format", dateTimeFormat);
         }
         if (type.equals(TimestampWithTimeZoneType.TIMESTAMP_WITH_TIME_ZONE)) {
             //TODO: TIMESTAMP_WITH_TIME_ZONE
-            return "date";
+            return fieldBuilder.field("type", "date")
+                    .field("format", "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis");
         }
         if (type instanceof DecimalType) {
-            return "double";
+            return fieldBuilder.field("type", "double");
+        }
+        if (isVarcharType(type)) {
+            //es 2.4.x
+            // .field("index", "not_analyzed")
+            return fieldBuilder.field("type", "string");
+        }
+        if (type.equals(VarbinaryType.VARBINARY)) {
+            return fieldBuilder.field("type", "binary");
         }
         if (isArrayType(type)) {
             Type elementType = type.getTypeParameters().get(0);
             if (isArrayType(elementType) || isMapType(elementType) || isRowType(elementType)) {
                 throw new PrestoException(NOT_SUPPORTED, "sorry unsupported type: " + type);
             }
-            return getEsType(elementType);
+            return buildFieldType(fieldBuilder, elementType);
         }
         if (isMapType(type)) {
             throw new PrestoException(NOT_SUPPORTED, "sorry unsupported type: " + type);

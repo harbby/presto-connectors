@@ -312,14 +312,6 @@ public class Elasticsearch5Client
         return qb;
     }
 
-    /**
-     * Gets a collection of Hbase Range objects from the given Presto domain.
-     * This maps the column constraints of the given Domain to an Hbase Range scan.
-     *
-     * @param domain Domain, can be null (returns (-inf, +inf) Range)
-     * @return A collection of Elasticsearch search objects
-     * @throws TableNotFoundException If the Elasticsearch index is not found
-     */
     public static Collection<Range> getRangesFromDomain(Domain domain)
             throws TableNotFoundException
     {
@@ -328,6 +320,15 @@ public class Elasticsearch5Client
         return rangeBuilder;
     }
 
+    /**
+     * worker exec split
+     * use Elasticsearch
+     *
+     * @param split ElasticsearchSplit, see getTabletSplits()
+     * @param columns List<ElasticsearchColumnHandle>
+     * @return A Iterator of Elasticsearch search source
+     * @throws TableNotFoundException If the Elasticsearch index is not found
+     */
     @Override
     public SearchResult<Map<String, Object>> execute(ElasticsearchSplit split, List<ElasticsearchColumnHandle> columns)
     {
@@ -365,7 +366,7 @@ public class Elasticsearch5Client
                 if (batchHitIterator.hasNext()) {
                     return true;
                 }
-                //---- 获取一批新的 es5.x以上首次Scroll是有数据的 此处需要先判空 ----
+                //---- 获取新的batch 注意: es5.x以上首次Scroll是有数据的----
                 final SearchResponse scrollResp = client.prepareSearchScroll(firstScrollResp.getScrollId())
                         .setScroll(new TimeValue(split.getTimeValue()))
                         .execute().actionGet();
@@ -394,8 +395,7 @@ public class Elasticsearch5Client
     {
         String indexWildcard = tableName.getTableName();
         GetIndexRequest getIndexRequest = createGetIndexRequest(indexWildcard);
-        //----es scher error --
-        Thread.currentThread().setName("getTable_001");
+        Thread.currentThread().setName("getTable_001"); //----es scher error --
         GetIndexResponse response = client.admin().indices()
                 .getIndex(getIndexRequest).actionGet();
         if (response.getIndices() == null || response.getIndices().length == 0) {
@@ -477,10 +477,7 @@ public class Elasticsearch5Client
                 if ("@timestamp".equals(columnName)) {    //break @timestamp field
                     continue;
                 }
-                mapping.startObject(columnName)
-                        .field("type", getEsType(type))
-                        //.field("index", "not_analyzed")
-                        .endObject();
+                buildFieldType(mapping.startObject(columnName), type).endObject();
             }
             mapping.endObject().endObject();
         }
@@ -490,57 +487,63 @@ public class Elasticsearch5Client
         return mapping;
     }
 
-    private static String getEsType(Type type)
+    private static XContentBuilder buildFieldType(XContentBuilder fieldBuilder, Type type)
+            throws IOException
     {
+        final String dateTimeFormat = "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis";
         //Type mapping
         // see:https://www.elastic.co/guide/en/elasticsearch/reference/6.3/mapping-types.html
         if (type.equals(BooleanType.BOOLEAN)) {
-            return "boolean";
+            return fieldBuilder.field("type", "boolean");
         }
         if (type.equals(BigintType.BIGINT)) {
-            return "long";
+            return fieldBuilder.field("type", "long");
         }
         if (type.equals(IntegerType.INTEGER)) {
-            return "integer";
+            return fieldBuilder.field("type", "integer");
         }
         if (type.equals(SmallintType.SMALLINT)) {
-            return "short";
+            return fieldBuilder.field("type", "short");
         }
         if (type.equals(TinyintType.TINYINT)) {
-            return "byte";
+            return fieldBuilder.field("type", "byte");
         }
         if (type.equals(DoubleType.DOUBLE)) {
-            return "double";
-        }
-        if (isVarcharType(type)) {
-            //TODO: text or keyword ?
-            return "text";
-        }
-        if (type.equals(VarbinaryType.VARBINARY)) {
-            return "binary";
+            return fieldBuilder.field("type", "double");
         }
         if (type.equals(DateType.DATE)) {
-            return "date";
+            return fieldBuilder.field("type", "date")
+                    .field("format", dateTimeFormat);
         }
         if (type.equals(TimeType.TIME)) {
-            return "date";
+            return fieldBuilder.field("type", "date")
+                    .field("format", dateTimeFormat);
         }
         if (type.equals(TimestampType.TIMESTAMP)) {
-            return "date";
+            return fieldBuilder.field("type", "date")
+                    .field("format", dateTimeFormat);
         }
         if (type.equals(TimestampWithTimeZoneType.TIMESTAMP_WITH_TIME_ZONE)) {
             //TODO: TIMESTAMP_WITH_TIME_ZONE
-            return "date";
+            return fieldBuilder.field("type", "date")
+                    .field("format", "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis");
         }
         if (type instanceof DecimalType) {
-            return "double";
+            return fieldBuilder.field("type", "double");
+        }
+        if (isVarcharType(type)) {
+            //TODO: text or keyword ?
+            return fieldBuilder.field("type", "text");
+        }
+        if (type.equals(VarbinaryType.VARBINARY)) {
+            return fieldBuilder.field("type", "binary");
         }
         if (isArrayType(type)) {
             Type elementType = type.getTypeParameters().get(0);
             if (isArrayType(elementType) || isMapType(elementType) || isRowType(elementType)) {
                 throw new PrestoException(NOT_SUPPORTED, "sorry unsupported type: " + type);
             }
-            return getEsType(elementType);
+            return buildFieldType(fieldBuilder, elementType);
         }
         if (isMapType(type)) {
             throw new PrestoException(NOT_SUPPORTED, "sorry unsupported type: " + type);

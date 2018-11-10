@@ -29,7 +29,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -125,19 +124,19 @@ public class ElasticsearchPageSink
         }
         if (type.equals(DateType.DATE)) {
             long days = type.getLong(block, position);
-            return new Date(TimeUnit.DAYS.toMillis(days));
+            return TimeUnit.DAYS.toMillis(days);
         }
         if (type.equals(TimeType.TIME)) {
-            long millisUtc = type.getLong(block, position);
-            return new Date(millisUtc);
+            long millis = type.getLong(block, position);
+            return millis;
         }
         if (type.equals(TimestampType.TIMESTAMP)) {
-            long millisUtc = type.getLong(block, position);
-            return new Date(millisUtc);
+            long millis = type.getLong(block, position);
+            return millis;
         }
         if (type.equals(TimestampWithTimeZoneType.TIMESTAMP_WITH_TIME_ZONE)) {
             long millisUtc = unpackMillisUtc(type.getLong(block, position));
-            return new Date(millisUtc);
+            return millisUtc;
         }
         if (type instanceof DecimalType) {
             // TODO: decimal type might not support yet
