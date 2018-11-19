@@ -8,10 +8,10 @@ import javax.inject.Inject;
 
 import java.util.List;
 
-import static com.facebook.presto.spi.session.PropertyMetadata.booleanProperty;
-import static com.facebook.presto.spi.session.PropertyMetadata.integerProperty;
-import static com.facebook.presto.spi.session.PropertyMetadata.longProperty;
-import static com.facebook.presto.spi.session.PropertyMetadata.stringProperty;
+import static com.facebook.presto.spi.session.PropertyMetadata.booleanSessionProperty;
+import static com.facebook.presto.spi.session.PropertyMetadata.integerSessionProperty;
+import static com.facebook.presto.spi.session.PropertyMetadata.longSessionProperty;
+import static com.facebook.presto.spi.session.PropertyMetadata.stringSessionProperty;
 
 /**
  * Class contains all session-based properties for the Elasticsearch connector.
@@ -35,35 +35,35 @@ public final class ElasticsearchSessionProperties
     @Inject
     public ElasticsearchSessionProperties()
     {
-        PropertyMetadata<Boolean> s1 = booleanProperty(
+        PropertyMetadata<Boolean> s1 = booleanSessionProperty(
                 OPTIMIZE_LOCALITY_ENABLED,
                 "Set to true to enable data locality for non-indexed scans. Default true.", true,
                 false);
 
-        PropertyMetadata<Boolean> s2 = booleanProperty(
+        PropertyMetadata<Boolean> s2 = booleanSessionProperty(
                 OPTIMIZE_SPLIT_SHARDS_ENABLED,
                 "Set to true to split non-indexed queries by shards splits. Should generally be true.",
                 true, false);
 
-        PropertyMetadata<String> s3 = stringProperty(
+        PropertyMetadata<String> s3 = stringSessionProperty(
                 SCAN_USERNAME,
                 "User to impersonate when scanning the index. This property trumps the scan_auths table property. Default is the user in the configuration file.",
                 null,
                 false);
 
-        PropertyMetadata<Integer> s4 = integerProperty(
+        PropertyMetadata<Integer> s4 = integerSessionProperty(
                 INDEX_ROWS_PER_SPLIT,
                 "The number of Elasticsearch IDs that are packed into a single Presto split. Default 10000",
                 10000,
                 false);
 
-        PropertyMetadata<Long> s5 = longProperty(
+        PropertyMetadata<Long> s5 = longSessionProperty(
                 SCROLL_SEARCH_TIMEOUT,
                 "If set, will enable scrolling of the search request for the specified timeout. Default 1m",
                 60_000L,
                 false);
 
-        PropertyMetadata<Integer> s6 = integerProperty(
+        PropertyMetadata<Integer> s6 = integerSessionProperty(
                 SCROLL_SEARCH_BATCH_SIZE,
                 "max of 100 hits will be returned for each scroll. Default 100",
                 100,
