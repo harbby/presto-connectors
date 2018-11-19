@@ -46,7 +46,6 @@ import com.facebook.presto.spi.type.VarcharType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.airlift.slice.Slice;
 import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsGroup;
@@ -345,20 +344,19 @@ public class Elasticsearch6Client
 
         return new SearchResult<Map<String, Object>>()
         {
-            private final Function<SearchResponse, Iterator<ImmutableMap<String, Object>>> func = (scrollResp) -> {
+            private final Function<SearchResponse, Iterator<Map<String, Object>>> func = (scrollResp) -> {
                 SearchHit[] searchHits = scrollResp.getHits().getHits();
                 return Arrays.stream(searchHits).map(searchHitFields -> {
-                    ImmutableMap.Builder<String, Object> sourceLine = ImmutableMap.builder();
-                    sourceLine.putAll(searchHitFields.getSourceAsMap());
+                    Map<String, Object> sourceLine = new HashMap<>(searchHitFields.getSourceAsMap());
                     sourceLine.put("_type", searchHitFields.getType());
                     sourceLine.put("_id", searchHitFields.getId());
                     sourceLine.put("_score", searchHitFields.getScore());
                     sourceLine.putAll(split.getPushDownDsl());  // add PushDown dsl
-                    return sourceLine.build();
+                    return sourceLine;
                 }).iterator();
             };
             private SearchResponse firstScrollResp = client.search(deserializedRequest).actionGet();
-            private Iterator<ImmutableMap<String, Object>> batchHitIterator = func.apply(firstScrollResp);
+            private Iterator<Map<String, Object>> batchHitIterator = func.apply(firstScrollResp);
 
             @Override
             public boolean hasNext()
