@@ -32,7 +32,6 @@ import static com.facebook.presto.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.facebook.presto.spi.type.IntegerType.INTEGER;
-import static com.facebook.presto.spi.type.RealType.REAL;
 import static com.facebook.presto.spi.type.TimeType.TIME;
 import static com.facebook.presto.spi.type.TimestampType.TIMESTAMP;
 import static com.facebook.presto.spi.type.VarbinaryType.VARBINARY;
@@ -202,9 +201,6 @@ public class ElasticsearchPageSource
                     type.writeLong(output, (Long) value);
                 }
                 else if (type.equals(TIMESTAMP)) {
-                    type.writeLong(output, (Long) value);
-                }
-                else if (type.equals(REAL)) {
                     type.writeLong(output, (Long) value);
                 }
                 else {
