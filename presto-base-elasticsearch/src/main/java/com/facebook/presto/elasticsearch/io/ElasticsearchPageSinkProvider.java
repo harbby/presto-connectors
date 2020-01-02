@@ -5,10 +5,7 @@ import com.facebook.presto.elasticsearch.ElasticsearchTable;
 import com.facebook.presto.elasticsearch.model.ElasticsearchColumnHandle;
 import com.facebook.presto.elasticsearch.model.ElasticsearchOutputTableHandle;
 import com.facebook.presto.elasticsearch.model.ElasticsearchTableHandle;
-import com.facebook.presto.spi.ConnectorInsertTableHandle;
-import com.facebook.presto.spi.ConnectorOutputTableHandle;
-import com.facebook.presto.spi.ConnectorPageSink;
-import com.facebook.presto.spi.ConnectorSession;
+import com.facebook.presto.spi.*;
 import com.facebook.presto.spi.connector.ConnectorPageSinkProvider;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 
@@ -31,23 +28,16 @@ public class ElasticsearchPageSinkProvider
         this.client = requireNonNull(client, "client is null");
     }
 
-    /**
-     * create table ** as
-     */
+
     @Override
-    public ConnectorPageSink createPageSink(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorOutputTableHandle outputTableHandle)
-    {
+    public ConnectorPageSink createPageSink(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorOutputTableHandle outputTableHandle, PageSinkProperties pageSinkProperties) {
         ElasticsearchOutputTableHandle tableHandle = (ElasticsearchOutputTableHandle) outputTableHandle;
         //throw new UnsupportedOperationException("this method have't support!");
         return new ElasticsearchPageSink(client, tableHandle.getSchemaTableName(), tableHandle.getColumns());
     }
 
-    /**
-     * insert into ...
-     */
     @Override
-    public ConnectorPageSink createPageSink(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorInsertTableHandle insertTableHandle)
-    {
+    public ConnectorPageSink createPageSink(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorInsertTableHandle insertTableHandle, PageSinkProperties pageSinkProperties) {
         ElasticsearchTableHandle tableHandle = (ElasticsearchTableHandle) insertTableHandle;
         ElasticsearchTable table = client.getTable(tableHandle.getSchemaTableName());
         List<ElasticsearchColumnHandle> columns = table.getColumns().stream()
