@@ -32,8 +32,9 @@ public class ElasticsearchSplitManager
     }
 
     @Override
-    public ConnectorSplitSource getSplits(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorTableLayoutHandle layout, SplitSchedulingStrategy splitSchedulingStrategy)
+    public ConnectorSplitSource getSplits(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorTableLayoutHandle layout, SplitSchedulingContext splitSchedulingContext )
     {
+        SplitSchedulingStrategy splitSchedulingStrategy = splitSchedulingContext.getSplitSchedulingStrategy();
         ElasticsearchTableLayoutHandle layoutHandle = (ElasticsearchTableLayoutHandle) layout;
         ElasticsearchTableHandle tableHandle = layoutHandle.getTable();
 
@@ -43,4 +44,5 @@ public class ElasticsearchSplitManager
         // Pack the tablet split metadata into a connector split
         return new FixedSplitSource(tabletSplits);
     }
+
 }
