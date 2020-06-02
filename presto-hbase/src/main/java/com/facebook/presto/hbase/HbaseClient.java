@@ -338,11 +338,11 @@ public final class HbaseClient
         //tableManager.setFamilys(table.getFullTableName(), familys);
 
         // Create the Hbase table if it does not exist (for 'external' table)
-        if (!tableManager.exists(table.getFullTableName())) {
+        String hbaseTableName = table.getSchema() + ":" + table.getTable();
+        if (!tableManager.exists(hbaseTableName)) {
             try {
-                tableManager.createHbaseTable(table.getFullTableName(), familys);
-            }
-            catch (Exception e) {
+                tableManager.createHbaseTable(hbaseTableName, familys);
+            } catch (Exception e) {
                 metaManager.deleteTableMetadata(table.getSchemaTableName());
                 throw e;
             }
